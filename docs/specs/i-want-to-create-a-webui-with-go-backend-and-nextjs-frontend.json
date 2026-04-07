@@ -1,0 +1,297 @@
+{
+  "name": "SpaceBallOne",
+  "slug": "i-want-to-create-a-webui-with-go-backend-and-nextjs-frontend",
+  "created": "2026-04-07",
+  "status": "ready",
+  "overview": "Web-based remote development workspace manager with Go backend and TanStack Start frontend. Manages multiple remote machines via SSH, with persistent terminal sessions, code-server, and Browserless browser preview per project.",
+  "tech_stack": {
+    "backend": {
+      "language": "Go 1.22+",
+      "router": "go-chi/chi",
+      "orm": "GORM",
+      "auth": "Argon2id + server-side sessions",
+      "encryption": "AES-256-GCM"
+    },
+    "frontend": {
+      "framework": "TanStack Start (Vite + Vinxi)",
+      "routing": "TanStack Router",
+      "data_fetching": "TanStack Query",
+      "tables": "TanStack Table",
+      "forms": "TanStack Form",
+      "virtualization": "TanStack Virtual",
+      "ui_components": "shadcn (Vite config)",
+      "styling": "Tailwind CSS",
+      "terminal": "xterm.js"
+    },
+    "database": {
+      "dev": "SQLite",
+      "prod": "PostgreSQL"
+    },
+    "remote_services": {
+      "terminal": "tmux",
+      "code_editor": "code-server (port 8443)",
+      "browser": "Browserless (ports 9222, 5900)",
+      "agents": ["OpenCode", "Claude Code", "Codex"]
+    },
+    "deployment": "Docker Compose (separate containers)"
+  },
+  "architecture": {
+    "ssh_lifecycle": "continuous",
+    "browser_location": "remote_machine",
+    "browser_streaming": "browserless_screencast_websocket",
+    "agent_location": "remote_machine",
+    "code_server_model": "one_per_machine_shared",
+    "api_transport": "rest_plus_websocket",
+    "websocket_model": "dedicated_per_session",
+    "credential_storage": "aes256_in_db",
+    "master_key_source": "environment_variable",
+    "auth_model": "single_user_mvp",
+    "session_layout": "fixed_tabbed",
+    "mobile_nav": "hamburger_drawer",
+    "health_check": "periodic_heartbeat_30s",
+    "connection_failure": "auto_retry_silent_exponential_backoff",
+    "session_recovery": "auto_recreate_plus_notify",
+    "machine_setup": "guided_assisted_installation",
+    "repo_structure": "monorepo"
+  },
+  "data_model": {
+    "users": {
+      "fields": ["id (uuid)", "username (string, unique)", "password_hash (string, argon2)", "must_change_password (bool)", "created_at", "updated_at"]
+    },
+    "machines": {
+      "fields": ["id (uuid)", "name (string)", "host (string)", "port (int)", "auth_type (enum: key/password)", "encrypted_credentials (blob)", "status (enum)", "capabilities (jsonb)", "last_heartbeat (timestamp)", "created_at", "updated_at"]
+    },
+    "projects": {
+      "fields": ["id (uuid)", "machine_id (uuid, fk)", "name (string)", "directory_path (string)", "created_at", "updated_at"]
+    },
+    "sessions": {
+      "fields": ["id (uuid)", "project_id (uuid, fk)", "name (string)", "status (enum)", "last_active (timestamp)", "created_at", "updated_at"]
+    },
+    "terminal_tabs": {
+      "fields": ["id (uuid)", "session_id (uuid, fk)", "tmux_window_index (int)", "name (string)", "created_at"]
+    },
+    "app_sessions": {
+      "fields": ["id (uuid)", "user_id (uuid, fk)", "session_token (string, unique)", "expires_at (timestamp)", "created_at"]
+    }
+  },
+  "user_stories": [
+    {
+      "id": "US-1",
+      "title": "Go API Scaffold",
+      "phase": 1,
+      "acceptance_criteria": [
+        "cmd/server/main.go starts HTTP server on configurable port",
+        "Chi router with middleware (logging, recovery, CORS)",
+        "GORM with SQLite driver + auto-migration",
+        "GET /api/health returns 200",
+        "go build ./... succeeds"
+      ]
+    },
+    {
+      "id": "US-2",
+      "title": "TanStack Start Frontend Scaffold",
+      "phase": 1,
+      "acceptance_criteria": [
+        "TanStack Start app serves on configurable port",
+        "TanStack Router with root layout",
+        "shadcn + Tailwind + dark/light mode",
+        "Header + sidebar + hamburger drawer on mobile",
+        "npm run build succeeds"
+      ]
+    },
+    {
+      "id": "US-3",
+      "title": "Auth System",
+      "phase": 1,
+      "acceptance_criteria": [
+        "Default admin account on first start",
+        "Login/logout endpoints with session cookie",
+        "Argon2 password hashing",
+        "Forced password change on first login",
+        "Auth middleware on all routes"
+      ]
+    },
+    {
+      "id": "US-4",
+      "title": "Machine CRUD",
+      "phase": 2,
+      "acceptance_criteria": [
+        "CRUD endpoints for machines",
+        "AES-256 credential encryption",
+        "Sidebar machine list with status dots",
+        "Add/Edit/Delete dialogs"
+      ]
+    },
+    {
+      "id": "US-5",
+      "title": "SSH Connection Manager",
+      "phase": 2,
+      "acceptance_criteria": [
+        "Persistent SSH connections",
+        "30s heartbeat",
+        "Status WebSocket",
+        "Auto-retry on drop",
+        "Green/yellow/red indicators"
+      ]
+    },
+    {
+      "id": "US-6",
+      "title": "Project CRUD + Remote File Browser",
+      "phase": 3,
+      "acceptance_criteria": [
+        "Remote directory listing via SSH",
+        "File browser UI component",
+        "Project CRUD endpoints",
+        "Sidebar project hierarchy"
+      ]
+    },
+    {
+      "id": "US-7",
+      "title": "Terminal Sessions (xterm.js + tmux)",
+      "phase": 3,
+      "acceptance_criteria": [
+        "Auto-create session on project open",
+        "tmux session in project directory",
+        "xterm.js with WebSocket proxy",
+        "Session persistence across page reloads",
+        "Multiple terminal tabs (tmux windows)",
+        "Auto-recovery after reboot"
+      ]
+    },
+    {
+      "id": "US-8",
+      "title": "Code-Server Integration",
+      "phase": 4,
+      "acceptance_criteria": [
+        "code-server lifecycle management",
+        "SSH port tunnel",
+        "iframe in Code tab",
+        "Workspace switches with project"
+      ]
+    },
+    {
+      "id": "US-9",
+      "title": "Browserless Integration",
+      "phase": 4,
+      "acceptance_criteria": [
+        "Browserless Docker container management",
+        "Screencast WebSocket proxy",
+        "JPEG frame rendering",
+        "Input forwarding (mouse + keyboard)",
+        "URL bar navigation"
+      ]
+    },
+    {
+      "id": "US-10",
+      "title": "Machine Setup Wizard",
+      "phase": 5,
+      "acceptance_criteria": [
+        "Capability auto-discovery",
+        "Guided installation UI",
+        "Core + optional item prompts",
+        "Progress streaming",
+        "Agent configuration"
+      ]
+    },
+    {
+      "id": "US-11",
+      "title": "Header Bar",
+      "phase": 6,
+      "acceptance_criteria": [
+        "Breadcrumb navigation",
+        "Global search (machines/projects/sessions)",
+        "Notifications bell (connection events)",
+        "Quick-connect dropdown",
+        "Theme toggle + user menu"
+      ]
+    },
+    {
+      "id": "US-12",
+      "title": "Session Management",
+      "phase": 3,
+      "acceptance_criteria": [
+        "Auto-create with auto-naming",
+        "Rename sessions",
+        "Session hierarchy in sidebar",
+        "Terminate sessions"
+      ]
+    },
+    {
+      "id": "US-13",
+      "title": "Docker Compose Deployment",
+      "phase": 6,
+      "acceptance_criteria": [
+        "docker-compose.yml with api/frontend/db",
+        "PostgreSQL support",
+        "TLS configuration",
+        ".env.example",
+        "docker compose up works"
+      ]
+    },
+    {
+      "id": "US-14",
+      "title": "Responsive Polish",
+      "phase": 6,
+      "acceptance_criteria": [
+        "Hamburger drawer on mobile",
+        "Touch targets >= 44px",
+        "Terminal works on mobile",
+        "Header adapts to viewport"
+      ]
+    }
+  ],
+  "phases": [
+    {
+      "number": 1,
+      "name": "Foundation",
+      "stories": ["US-1", "US-2", "US-3"],
+      "verification": ["go build ./...", "go test ./...", "npm run build", "npm run typecheck", "curl /api/health"]
+    },
+    {
+      "number": 2,
+      "name": "Machine Management",
+      "stories": ["US-4", "US-5"],
+      "verification": ["Machine add/connect/status flow", "SSH connection persistence", "Heartbeat + reconnect"]
+    },
+    {
+      "number": 3,
+      "name": "Projects & Terminal",
+      "stories": ["US-6", "US-7", "US-12"],
+      "verification": ["Project CRUD", "Terminal I/O", "Session persistence", "File browser"]
+    },
+    {
+      "number": 4,
+      "name": "Code Server & Browser",
+      "stories": ["US-8", "US-9"],
+      "verification": ["Code tab loads code-server", "Browser tab streams Browserless", "Input forwarding works"]
+    },
+    {
+      "number": 5,
+      "name": "Machine Setup Wizard",
+      "stories": ["US-10"],
+      "verification": ["Fresh machine triggers wizard", "Installation completes", "Capabilities detected"]
+    },
+    {
+      "number": 6,
+      "name": "Docker Compose & Polish",
+      "stories": ["US-11", "US-13", "US-14"],
+      "verification": ["docker compose up", "Responsive on mobile", "Search + notifications work"]
+    }
+  ],
+  "out_of_scope": [
+    "Git UI integration",
+    "Team collaboration / shared sessions",
+    "Multi-user RBAC",
+    "OAuth / SSO"
+  ],
+  "environment_variables": [
+    {"name": "SPACEBALLONE_MASTER_KEY", "description": "AES-256 key for credential encryption", "required": true},
+    {"name": "DATABASE_URL", "description": "Database connection string", "default": "sqlite://spaceballone.db"},
+    {"name": "PORT", "description": "API server port", "default": "8080"},
+    {"name": "FRONTEND_URL", "description": "Frontend origin for CORS", "default": "http://localhost:3000"},
+    {"name": "TLS_CERT_PATH", "description": "Path to TLS certificate", "required": false},
+    {"name": "TLS_KEY_PATH", "description": "Path to TLS private key", "required": false},
+    {"name": "SESSION_EXPIRY", "description": "Session lifetime", "default": "24h"},
+    {"name": "HEARTBEAT_INTERVAL", "description": "Machine health check interval", "default": "30s"}
+  ]
+}

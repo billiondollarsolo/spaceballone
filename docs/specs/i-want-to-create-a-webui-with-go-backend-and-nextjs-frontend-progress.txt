@@ -1,0 +1,28 @@
+# SpaceBallOne - Implementation Progress
+# Spec: docs/specs/i-want-to-create-a-webui-with-go-backend-and-nextjs-frontend.md
+
+## Phase 1: Foundation
+[PENDING] US-1: Go API Scaffold
+[PENDING] US-2: TanStack Start Frontend Scaffold
+[PENDING] US-3: Auth System
+
+## Phase 2: Machine Management
+[PENDING] US-4: Machine CRUD
+[PENDING] US-5: SSH Connection Manager
+
+## Phase 3: Projects & Terminal
+[PENDING] US-6: Project CRUD + Remote File Browser
+[PENDING] US-7: Terminal Sessions (xterm.js + tmux)
+[PENDING] US-12: Session Management
+
+## Phase 4: Code Server & Browser
+[PENDING] US-8: Code-Server Integration
+[PENDING] US-9: Browserless Integration
+
+## Phase 5: Machine Setup Wizard
+[PENDING] US-10: Machine Setup Wizard
+
+## Phase 6: Docker Compose & Polish
+[PENDING] US-11: Header Bar
+[PENDING] US-13: Docker Compose Deployment
+[PENDING] US-14: Responsive Polish
