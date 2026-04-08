@@ -10,7 +10,6 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/spaceballone/backend/internal/auth"
 	"github.com/spaceballone/backend/internal/browser"
-	"github.com/spaceballone/backend/internal/codeserver"
 	authmw "github.com/spaceballone/backend/internal/middleware"
 	"github.com/spaceballone/backend/internal/models"
 	"github.com/spaceballone/backend/internal/setup"
@@ -25,7 +24,6 @@ type RouterDeps struct {
 	DB       *gorm.DB
 	SSH      *sshmanager.Manager
 	WS       *ws.Hub
-	CS       *codeserver.Manager
 	Browser  *browser.Manager
 	Terminal *terminal.Manager
 }
@@ -38,12 +36,11 @@ func NewRouter(db *gorm.DB) *chi.Mux {
 
 // NewRouterWithDeps creates the router with optional SSH manager and WS hub dependencies.
 // Deprecated: prefer NewRouterFromDeps with a RouterDeps struct.
-func NewRouterWithDeps(db *gorm.DB, sshMgr *sshmanager.Manager, wsHub *ws.Hub, csMgr *codeserver.Manager, brMgr *browser.Manager) *chi.Mux {
+func NewRouterWithDeps(db *gorm.DB, sshMgr *sshmanager.Manager, wsHub *ws.Hub, brMgr *browser.Manager) *chi.Mux {
 	return NewRouterFromDeps(RouterDeps{
 		DB:      db,
 		SSH:     sshMgr,
 		WS:      wsHub,
-		CS:      csMgr,
 		Browser: brMgr,
 	})
 }
@@ -135,16 +132,6 @@ func NewRouterFromDeps(deps RouterDeps) *chi.Mux {
 			r.Delete("/sessions/{id}", sh.DeleteSession)
 			r.Post("/sessions/{id}/terminals", sh.CreateTerminal)
 			r.Delete("/terminals/{id}", sh.DeleteTerminal)
-
-			// Code-server endpoints
-			if deps.CS != nil {
-				csh := &CodeServerHandler{DB: deps.DB, SSH: deps.SSH, CodeServer: deps.CS}
-				r.Post("/machines/{id}/code-server/start", csh.StartCodeServer)
-				r.Post("/machines/{id}/code-server/stop", csh.StopCodeServer)
-				r.Get("/machines/{id}/code-server/status", csh.CodeServerStatus)
-				r.Post("/machines/{id}/code-server/open", csh.OpenFolder)
-				r.HandleFunc("/code-server-proxy/{machineId}/*", csh.ProxyCodeServer)
-			}
 
 			// Browserless endpoints
 			if deps.Browser != nil {

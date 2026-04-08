@@ -23,6 +23,7 @@ export function AddMachineDialog({ open, onOpenChange }: AddMachineDialogProps) 
   const [name, setName] = useState('')
   const [host, setHost] = useState('')
   const [port, setPort] = useState('22')
+  const [username, setUsername] = useState('root')
   const [authType, setAuthType] = useState<'password' | 'key'>('password')
   const [credentials, setCredentials] = useState('')
 
@@ -32,6 +33,7 @@ export function AddMachineDialog({ open, onOpenChange }: AddMachineDialogProps) 
     setName('')
     setHost('')
     setPort('22')
+    setUsername('root')
     setAuthType('password')
     setCredentials('')
   }
@@ -44,7 +46,7 @@ export function AddMachineDialog({ open, onOpenChange }: AddMachineDialogProps) 
         host,
         port: parseInt(port, 10) || 22,
         auth_type: authType,
-        credentials,
+        credentials: `${username}\n${credentials}`,
       },
       {
         onSuccess: () => {
@@ -101,6 +103,17 @@ export function AddMachineDialog({ open, onOpenChange }: AddMachineDialogProps) 
               min={1}
               max={65535}
               required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="add-username">Username</Label>
+            <Input
+              id="add-username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="root"
+              required
+              autoComplete="off"
             />
           </div>
           <div className="space-y-2">

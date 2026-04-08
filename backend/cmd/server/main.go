@@ -10,9 +10,9 @@ import (
 	"github.com/spaceballone/backend/internal/api"
 	"github.com/spaceballone/backend/internal/auth"
 	"github.com/spaceballone/backend/internal/browser"
-	"github.com/spaceballone/backend/internal/codeserver"
 	"github.com/spaceballone/backend/internal/crypto"
 	"github.com/spaceballone/backend/internal/db"
+	"github.com/spaceballone/backend/internal/models"
 	sshmanager "github.com/spaceballone/backend/internal/ssh"
 	"github.com/spaceballone/backend/internal/terminal"
 	"github.com/spaceballone/backend/internal/ws"
@@ -53,8 +53,7 @@ func main() {
 	})
 	defer sshMgr.Stop()
 
-	// Initialize code-server and browser managers
-	csMgr := codeserver.NewManager()
+	// Initialize browser manager
 	brMgr := browser.NewManager()
 
 	// Terminal manager (shared with router)
@@ -68,16 +67,17 @@ func main() {
 
 	// Wire SSH disconnect callback to clean up tunnels
 	sshMgr.OnDisconnect = func(machineID string) {
-		csMgr.CleanupMachine(machineID)
 		brMgr.CleanupMachine(machineID)
 	}
+
+	// Reset all machines to disconnected on startup (in-memory connections are lost)
+	database.Model(&models.Machine{}).Where("status = ?", "connected").Update("status", models.MachineStatusDisconnected)
 
 	// Create router with all dependencies
 	router := api.NewRouterFromDeps(api.RouterDeps{
 		DB:       database,
 		SSH:      sshMgr,
 		WS:       wsHub,
-		CS:       csMgr,
 		Browser:  brMgr,
 		Terminal: termMgr,
 	})

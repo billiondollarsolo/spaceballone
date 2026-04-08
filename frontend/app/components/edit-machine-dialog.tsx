@@ -31,6 +31,7 @@ function EditMachineDialogContent({
   const [name, setName] = useState(machine.name)
   const [host, setHost] = useState(machine.host)
   const [port, setPort] = useState(String(machine.port))
+  const [username, setUsername] = useState('root')
   const [authType, setAuthType] = useState<'password' | 'key'>(machine.auth_type)
   const [credentials, setCredentials] = useState('')
 
@@ -48,7 +49,7 @@ function EditMachineDialogContent({
           host,
           port: parseInt(port, 10) || 22,
           auth_type: authType,
-          ...(credentials ? { credentials } : {}),
+          ...(credentials ? { credentials: `${username}\n${credentials}` } : {}),
         },
       },
       {
@@ -96,6 +97,17 @@ function EditMachineDialogContent({
             min={1}
             max={65535}
             required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="edit-username">Username</Label>
+          <Input
+            id="edit-username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="root"
+            required
+            autoComplete="off"
           />
         </div>
         <div className="space-y-2">

@@ -19,8 +19,6 @@ type Capabilities struct {
 	TmuxVersion       string `json:"tmux_version,omitempty"`
 	Docker            bool   `json:"docker"`
 	DockerVersion     string `json:"docker_version,omitempty"`
-	CodeServer        bool   `json:"code_server"`
-	CodeServerVersion string `json:"code_server_version,omitempty"`
 	Node              bool   `json:"node"`
 	NodeVersion       string `json:"node_version,omitempty"`
 	GoLang            bool   `json:"go_lang"`
@@ -71,17 +69,8 @@ func (m *Manager) DiscoverCapabilities(client *ssh.Client) (*Capabilities, error
 		caps.DockerVersion = strings.TrimSpace(out)
 	}
 
-	// code-server
-	if out, err := sshmanager.RunCommand(client, "which code-server && code-server --version"); err == nil {
-		caps.CodeServer = true
-		lines := strings.Split(strings.TrimSpace(out), "\n")
-		if len(lines) > 1 {
-			caps.CodeServerVersion = strings.TrimSpace(lines[1])
-		}
-	}
-
 	// node
-	if out, err := sshmanager.RunCommand(client, "which node && node --version"); err == nil {
+	if out, err := sshmanager.RunCommand(client, "export PATH=\"$HOME/.local/bin:$HOME/.nvm/versions/node/*/bin:$PATH\" && which node && node --version"); err == nil {
 		caps.Node = true
 		lines := strings.Split(strings.TrimSpace(out), "\n")
 		if len(lines) > 1 {
@@ -92,7 +81,7 @@ func (m *Manager) DiscoverCapabilities(client *ssh.Client) (*Capabilities, error
 	}
 
 	// go
-	if out, err := sshmanager.RunCommand(client, "which go && go version"); err == nil {
+	if out, err := sshmanager.RunCommand(client, "export PATH=\"$HOME/go/bin:$PATH\" && which go && go version"); err == nil {
 		caps.GoLang = true
 		lines := strings.Split(strings.TrimSpace(out), "\n")
 		if len(lines) > 1 {
@@ -103,17 +92,17 @@ func (m *Manager) DiscoverCapabilities(client *ssh.Client) (*Capabilities, error
 	}
 
 	// claude code
-	if _, err := sshmanager.RunCommand(client, "which claude"); err == nil {
+	if _, err := sshmanager.RunCommand(client, "export PATH=\"$HOME/.local/bin:$HOME/.npm-global/bin:$PATH\" && which claude"); err == nil {
 		caps.ClaudeCode = true
 	}
 
 	// opencode
-	if _, err := sshmanager.RunCommand(client, "which opencode"); err == nil {
+	if _, err := sshmanager.RunCommand(client, "export PATH=\"$HOME/go/bin:$HOME/.local/bin:$PATH\" && which opencode"); err == nil {
 		caps.OpenCode = true
 	}
 
 	// codex
-	if _, err := sshmanager.RunCommand(client, "which codex"); err == nil {
+	if _, err := sshmanager.RunCommand(client, "export PATH=\"$HOME/.local/bin:$HOME/.npm-global/bin:$PATH\" && which codex"); err == nil {
 		caps.Codex = true
 	}
 
@@ -147,14 +136,6 @@ func (m *Manager) GetRecommendations(caps *Capabilities) []Recommendation {
 			Reason:      "Required for container-based services",
 			Required:    true,
 			Description: "Container runtime for isolated environments",
-		})
-	}
-	if !caps.CodeServer {
-		recs = append(recs, Recommendation{
-			Package:     "code-server",
-			Reason:      "Recommended for Code tab",
-			Required:    false,
-			Description: "VS Code in the browser",
 		})
 	}
 	if !caps.Node {
@@ -239,27 +220,6 @@ func installCommand(pkgMgr, packageName string) (string, error) {
 		}
 	case "docker":
 		return "curl -fsSL https://get.docker.com | sh", nil
-	case "code-server":
-		return "curl -fsSL https://code-server.dev/install.sh | sh", nil
-	case "node":
-		switch pkgMgr {
-		case "apt":
-			return "curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt-get install -y nodejs", nil
-		case "dnf":
-			return "curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash - && sudo dnf install -y nodejs", nil
-		case "yum":
-			return "curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash - && sudo yum install -y nodejs", nil
-		case "brew":
-			return "brew install node@20", nil
-		case "apk":
-			return "sudo apk add nodejs npm", nil
-		}
-	case "go":
-		return "curl -fsSL https://go.dev/dl/go1.22.5.linux-amd64.tar.gz | sudo tar -C /usr/local -xzf - && echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.profile", nil
-	case "claude_code":
-		return "npm install -g @anthropic-ai/claude-code", nil
-	case "opencode":
-		return "go install github.com/opencode-ai/opencode@latest", nil
 	case "codex":
 		return "npm install -g @openai/codex", nil
 	}

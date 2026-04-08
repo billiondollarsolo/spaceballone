@@ -23,7 +23,6 @@ type Capabilities struct {
 	DockerVersion string `json:"docker_version,omitempty"`
 	Tmux          bool   `json:"tmux"`
 	TmuxVersion   string `json:"tmux_version,omitempty"`
-	CodeServer    bool   `json:"code_server"`
 	Node          bool   `json:"node"`
 	GoLang        bool   `json:"go_lang"`
 }
@@ -166,7 +165,8 @@ func (m *Manager) Disconnect(machineID string) error {
 	entry, ok := m.connections[machineID]
 	if !ok {
 		m.mu.Unlock()
-		return fmt.Errorf("ssh: machine %s is not connected", machineID)
+		m.updateStatus(machineID, models.MachineStatusDisconnected)
+		return nil
 	}
 	if entry.stopRetry != nil {
 		close(entry.stopRetry)
@@ -222,11 +222,6 @@ func (m *Manager) DiscoverCapabilities(machineID string) (*Capabilities, error) 
 	if out, err := RunCommand(client, "tmux -V"); err == nil {
 		caps.Tmux = true
 		caps.TmuxVersion = strings.TrimSpace(out)
-	}
-
-	// Code server
-	if _, err := RunCommand(client, "which code-server"); err == nil {
-		caps.CodeServer = true
 	}
 
 	// Node

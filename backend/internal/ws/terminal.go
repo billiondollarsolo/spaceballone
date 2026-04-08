@@ -80,10 +80,9 @@ func (h *TerminalHandler) HandleTerminalWS(w http.ResponseWriter, r *http.Reques
 
 	tmuxName := terminal.SessionName(session.ID)
 
-	// Attach to tmux window
-	sshSession, err := terminal.AttachTmuxWindow(client, tmuxName, tab.TmuxWindowIndex, 80, 24)
+	sshSession, startAttach, err := terminal.PrepareTmuxAttach(client, tmuxName, tab.TmuxWindowIndex, 80, 24, project.DirectoryPath)
 	if err != nil {
-		log.Printf("ws/terminal: failed to attach tmux: %v", err)
+		log.Printf("ws/terminal: failed to prepare tmux attach: %v", err)
 		_ = conn.WriteMessage(websocket.TextMessage, []byte(`{"error":"failed to attach to terminal"}`))
 		return
 	}
@@ -99,6 +98,12 @@ func (h *TerminalHandler) HandleTerminalWS(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		log.Printf("ws/terminal: failed to get stdout pipe: %v", err)
 		sshSession.Close()
+		return
+	}
+
+	if err := startAttach(); err != nil {
+		log.Printf("ws/terminal: failed to start tmux attach: %v", err)
+		_ = conn.WriteMessage(websocket.TextMessage, []byte(`{"error":"failed to attach to terminal"}`))
 		return
 	}
 

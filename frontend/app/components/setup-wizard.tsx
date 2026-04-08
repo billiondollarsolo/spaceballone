@@ -151,7 +151,6 @@ export function SetupWizard({
             switch (packageName) {
               case 'tmux': updated.tmux = true; break
               case 'docker': updated.docker = true; break
-              case 'code-server': updated.code_server = true; break
               case 'node': updated.node = true; break
               case 'go': updated.go_lang = true; break
               case 'claude_code': updated.claude_code = true; break
@@ -183,7 +182,6 @@ export function SetupWizard({
     switch (key) {
       case 'tmux': return capabilities.tmux
       case 'docker': return capabilities.docker
-      case 'code-server': return capabilities.code_server
       case 'node': return capabilities.node
       case 'go': return capabilities.go_lang
       case 'claude_code': return capabilities.claude_code
@@ -198,7 +196,6 @@ export function SetupWizard({
     switch (key) {
       case 'tmux': return capabilities.tmux_version
       case 'docker': return capabilities.docker_version
-      case 'code-server': return capabilities.code_server_version
       case 'node': return capabilities.node_version
       case 'go': return capabilities.go_version
       default: return undefined
@@ -211,7 +208,6 @@ export function SetupWizard({
   ]
 
   const optionalPackages: PackageItem[] = [
-    { key: 'code-server', label: 'code-server', description: 'VS Code in the browser (recommended for Code tab)', installed: isInstalled('code-server'), version: getVersion('code-server') },
     { key: 'node', label: 'Node.js', description: 'JavaScript runtime (recommended for JS/TS development)', installed: isInstalled('node'), version: getVersion('node') },
     { key: 'go', label: 'Go', description: 'Go programming language (recommended for Go development)', installed: isInstalled('go'), version: getVersion('go') },
   ]
@@ -312,7 +308,6 @@ export function SetupWizard({
                   {[
                     { key: 'tmux', label: 'tmux' },
                     { key: 'docker', label: 'Docker' },
-                    { key: 'code-server', label: 'code-server' },
                     { key: 'node', label: 'Node.js' },
                     { key: 'go', label: 'Go' },
                     { key: 'claude_code', label: 'Claude Code' },

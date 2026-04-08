@@ -90,6 +90,10 @@ export function TerminalComponent({ terminalId }: TerminalProps) {
         ws.onmessage = (event) => {
           if (typeof event.data === 'string') {
             term.write(event.data)
+          } else if (event.data instanceof Blob) {
+            event.data.arrayBuffer().then((buf) => term.write(new Uint8Array(buf)))
+          } else if (event.data instanceof ArrayBuffer) {
+            term.write(new Uint8Array(event.data))
           }
         }
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Monitor, MoreHorizontal, ChevronRight, ChevronDown } from 'lucide-react'
+import { Monitor, MoreHorizontal, ChevronRight, ChevronDown, Power, PowerOff } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import {
   DropdownMenu,
@@ -86,12 +86,14 @@ function MachineListItem({
   onEdit: () => void
 }) {
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [expanded, setExpanded] = useState(false)
+  const [connectOpen, setConnectOpen] = useState(false)
+  const [disconnectOpen, setDisconnectOpen] = useState(false)
   const deleteMachine = useDeleteMachine()
   const connectMachine = useConnectMachine()
   const disconnectMachine = useDisconnectMachine()
 
   const isConnected = machine.status === 'connected'
+  const isDisconnected = machine.status === 'disconnected'
 
   return (
     <>
@@ -99,14 +101,13 @@ function MachineListItem({
         <button
           type="button"
           className="size-4 shrink-0 flex items-center justify-center"
-          onClick={() => setExpanded(!expanded)}
-          aria-label={expanded ? 'Collapse' : 'Expand'}
+          onClick={() => {
+            if (isConnected) setDisconnectOpen(true)
+            else if (isDisconnected) setConnectOpen(true)
+          }}
+          aria-label={isConnected ? 'Disconnect' : 'Connect'}
         >
-          {expanded ? (
-            <ChevronDown className="size-3.5 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="size-3.5 text-muted-foreground" />
-          )}
+          <StatusDot status={machine.status} />
         </button>
 
         <Link
@@ -114,7 +115,6 @@ function MachineListItem({
           params={{ machineId: machine.id }}
           className="flex min-w-0 flex-1 items-center gap-2"
         >
-          <StatusDot status={machine.status} />
           <span className="truncate text-sm">{machine.name}</span>
         </Link>
 
@@ -134,14 +134,16 @@ function MachineListItem({
             <DropdownMenuSeparator />
             {isConnected ? (
               <DropdownMenuItem
-                onClick={() => disconnectMachine.mutate(machine.id)}
+                onClick={() => setDisconnectOpen(true)}
               >
+                <PowerOff className="size-3.5 mr-2" />
                 Disconnect
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem
-                onClick={() => connectMachine.mutate(machine.id)}
+                onClick={() => setConnectOpen(true)}
               >
+                <Power className="size-3.5 mr-2" />
                 Connect
               </DropdownMenuItem>
             )}
@@ -156,8 +158,21 @@ function MachineListItem({
         </DropdownMenu>
       </div>
 
-      {expanded && (
-        <ProjectList machineId={machine.id} isConnected={isConnected} />
+      {isConnected && (
+        <ProjectList machineId={machine.id} />
+      )}
+
+      {!isConnected && (
+        <div className="pl-7 py-1">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setConnectOpen(true)}
+          >
+            <Power className="size-3" />
+            Connect
+          </button>
+        </div>
       )}
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
@@ -176,6 +191,44 @@ function MachineListItem({
               onClick={() => deleteMachine.mutate(machine.id)}
             >
               {deleteMachine.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={connectOpen} onOpenChange={setConnectOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Connect to {machine.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will establish an SSH connection to {machine.host}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => connectMachine.mutate(machine.id)}
+            >
+              {connectMachine.isPending ? 'Connecting...' : 'Connect'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={disconnectOpen} onOpenChange={setDisconnectOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect from {machine.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Active terminal sessions will be preserved by tmux and can be resumed when you reconnect.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => disconnectMachine.mutate(machine.id)}
+            >
+              {disconnectMachine.isPending ? 'Disconnecting...' : 'Disconnect'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

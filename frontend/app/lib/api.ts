@@ -1,15 +1,13 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _process = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined
 export const API_URL = typeof window !== 'undefined'
-  ? ''  // Browser: use same-origin relative paths (Caddy proxies /api/* to backend)
-  : (_process?.env?.API_URL || 'http://localhost:8080')  // SSR: internal Docker URL
+  ? ''
+  : (_process?.env?.API_URL || 'http://localhost:8080')
 
 export function getWsUrl(path: string): string {
   if (typeof window === 'undefined') {
-    // SSR context — shouldn't create WebSockets, but just in case
     return `ws://localhost:8080${path}`
   }
-  // Browser: derive WS URL from current page location (same origin)
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   return `${protocol}//${window.location.host}${path}`
 }
@@ -36,7 +34,7 @@ async function request<T>(
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...options.headers as Record<string, string>,
     },
   })
 
@@ -247,28 +245,6 @@ export const terminalApi = {
   },
   delete(terminalId: string) {
     return api.delete<void>(`/api/terminals/${terminalId}`)
-  },
-}
-
-// Code-Server types
-export interface CodeServerStatus {
-  running: boolean
-  url: string | null
-}
-
-// Code-Server API
-export const codeServerApi = {
-  start(machineId: string) {
-    return api.post<{ url: string }>(`/api/machines/${machineId}/code-server/start`)
-  },
-  stop(machineId: string) {
-    return api.post<void>(`/api/machines/${machineId}/code-server/stop`)
-  },
-  status(machineId: string) {
-    return api.get<CodeServerStatus>(`/api/machines/${machineId}/code-server/status`)
-  },
-  open(machineId: string, folder: string) {
-    return api.post<{ url: string }>(`/api/machines/${machineId}/code-server/open`, { folder })
   },
 }
 

@@ -71,10 +71,12 @@ func AttachTmuxSession(client *ssh.Client, sessionName string, cols, rows int) (
 }
 
 // AttachTmuxWindow attaches to a specific tmux window within a session.
-func AttachTmuxWindow(client *ssh.Client, sessionName string, windowIndex int, cols, rows int) (*ssh.Session, error) {
+// PrepareTmuxAttach sets up an SSH session for attaching to a tmux window.
+// The caller must obtain StdinPipe/StdoutPipe before calling the returned start function.
+func PrepareTmuxAttach(client *ssh.Client, sessionName string, windowIndex int, cols, rows int, workDir string) (sess *ssh.Session, start func() error, err error) {
 	session, err := client.NewSession()
 	if err != nil {
-		return nil, fmt.Errorf("terminal: failed to open SSH session: %w", err)
+		return nil, nil, fmt.Errorf("terminal: failed to open SSH session: %w", err)
 	}
 
 	modes := ssh.TerminalModes{
@@ -91,17 +93,21 @@ func AttachTmuxWindow(client *ssh.Client, sessionName string, windowIndex int, c
 
 	if err := session.RequestPty("xterm-256color", rows, cols, modes); err != nil {
 		session.Close()
-		return nil, fmt.Errorf("terminal: failed to request PTY: %w", err)
+		return nil, nil, fmt.Errorf("terminal: failed to request PTY: %w", err)
 	}
 
 	target := fmt.Sprintf("%s:%d", sessionName, windowIndex)
-	cmd := fmt.Sprintf("tmux attach-session -t %s", shellEscape(target))
-	if err := session.Start(cmd); err != nil {
-		session.Close()
-		return nil, fmt.Errorf("terminal: failed to attach to tmux window %q: %w", target, err)
+	cmd := fmt.Sprintf("tmux new-session -A -s %s -c %s", shellEscape(sessionName), shellEscape(workDir))
+
+	start = func() error {
+		if err := session.Start(cmd); err != nil {
+			session.Close()
+			return fmt.Errorf("terminal: failed to attach to tmux window %q: %w", target, err)
+		}
+		return nil
 	}
 
-	return session, nil
+	return session, start, nil
 }
 
 // CreateTmuxWindow creates a new window in an existing tmux session.

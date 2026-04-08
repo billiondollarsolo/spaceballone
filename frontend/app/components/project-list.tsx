@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { FolderOpen, MoreHorizontal, Plus, Loader2 } from 'lucide-react'
+import { FolderOpen, FolderClosed, MoreHorizontal, Plus, Loader2, ChevronRight, ChevronDown } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import {
   DropdownMenu,
@@ -28,10 +28,9 @@ import type { Project } from '~/lib/api'
 
 interface ProjectListProps {
   machineId: string
-  isConnected: boolean
 }
 
-export function ProjectList({ machineId, isConnected }: ProjectListProps) {
+export function ProjectList({ machineId }: ProjectListProps) {
   const { data: projects, isLoading } = useProjects(machineId)
   const [addOpen, setAddOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
@@ -54,16 +53,14 @@ export function ProjectList({ machineId, isConnected }: ProjectListProps) {
         />
       ))}
 
-      {isConnected && (
-        <button
-          type="button"
-          className="flex items-center gap-1.5 py-1 pl-7 pr-2 text-xs text-muted-foreground hover:text-foreground"
-          onClick={() => setAddOpen(true)}
-        >
-          <Plus className="size-3" />
-          Add Project
-        </button>
-      )}
+      <button
+        type="button"
+        className="flex items-center gap-1.5 py-1 pl-7 pr-2 text-xs text-muted-foreground hover:text-foreground"
+        onClick={() => setAddOpen(true)}
+      >
+        <Plus className="size-3" />
+        Add Project
+      </button>
 
       <AddProjectDialog
         machineId={machineId}
@@ -90,22 +87,12 @@ function ProjectItem({
   onEdit: () => void
 }) {
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true)
   const deleteProject = useDeleteProject()
   const createSession = useCreateSession()
   const navigate = useNavigate()
   const { data: sessions } = useSessions(expanded ? project.id : '')
 
-  function handleProjectClick() {
-    if (!expanded) {
-      setExpanded(true)
-      // Auto-create session if none exist - check is done after sessions load
-    } else {
-      setExpanded(false)
-    }
-  }
-
-  // When sessions load and the project was just expanded, auto-create if empty
   const autoCreateFired = useRef(false)
 
   useEffect(() => {
@@ -129,7 +116,6 @@ function ProjectItem({
     }
   }, [sessions, expanded, createSession.isPending, createSession.isSuccess, project.id, navigate, createSession])
 
-  // Reset the auto-create guard when the project is collapsed
   useEffect(() => {
     if (!expanded) {
       autoCreateFired.current = false
@@ -138,13 +124,30 @@ function ProjectItem({
 
   return (
     <>
-      <div className="group flex items-center gap-1 py-1 pl-5 pr-2 hover:bg-sidebar-accent rounded-sm">
+      <div className="group flex items-center gap-1 py-1 pl-4 pr-2 hover:bg-sidebar-accent rounded-sm">
+        <button
+          type="button"
+          className="size-4 shrink-0 flex items-center justify-center"
+          onClick={() => setExpanded(!expanded)}
+          aria-label={expanded ? 'Collapse' : 'Expand'}
+        >
+          {expanded ? (
+            <ChevronDown className="size-3 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="size-3 text-muted-foreground" />
+          )}
+        </button>
+
         <button
           type="button"
           className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-          onClick={handleProjectClick}
+          onClick={() => setExpanded(!expanded)}
         >
-          <FolderOpen className="size-3.5 shrink-0 text-muted-foreground" />
+          {expanded ? (
+            <FolderOpen className="size-3.5 shrink-0 text-muted-foreground" />
+          ) : (
+            <FolderClosed className="size-3.5 shrink-0 text-muted-foreground" />
+          )}
           <span className="truncate text-xs">{project.name}</span>
         </button>
 

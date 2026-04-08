@@ -13,6 +13,7 @@ import type { Machine } from '~/lib/api'
 
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: async ({ context }) => {
+    if (typeof window === 'undefined') return
     try {
       const user = await context.queryClient.ensureQueryData({
         queryKey: AUTH_QUERY_KEY,

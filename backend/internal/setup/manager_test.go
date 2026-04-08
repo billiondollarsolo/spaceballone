@@ -9,8 +9,8 @@ func TestGetRecommendations_AllMissing(t *testing.T) {
 	caps := &Capabilities{}
 	recs := mgr.GetRecommendations(caps)
 
-	if len(recs) != 8 {
-		t.Errorf("expected 8 recommendations, got %d", len(recs))
+	if len(recs) != 7 {
+		t.Errorf("expected 7 recommendations, got %d", len(recs))
 	}
 
 	// Check that tmux and docker are required
@@ -30,7 +30,6 @@ func TestGetRecommendations_AllPresent(t *testing.T) {
 	caps := &Capabilities{
 		Tmux:       true,
 		Docker:     true,
-		CodeServer: true,
 		Node:       true,
 		GoLang:     true,
 		ClaudeCode: true,
