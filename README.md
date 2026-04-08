@@ -80,8 +80,8 @@ spaceballone/
 
 ### Prerequisites
 
-- Go 1.22+
-- Node.js 20+
+- Go 1.23+
+- Node.js 22+
 - A remote machine with SSH access (for actual functionality)
 
 ### Backend
@@ -91,6 +91,9 @@ cd backend
 
 # Required: set a master key for credential encryption
 export SPACEBALLONE_MASTER_KEY="your-secret-key-at-least-32-characters-long"
+# Optional: set default admin credentials (otherwise random password is generated)
+export DEFAULT_ADMIN_EMAIL="admin@spaceballone.local"
+export DEFAULT_ADMIN_PASSWORD="changeme"
 
 go mod download
 go build ./...
@@ -98,7 +101,7 @@ go test ./...
 
 # Run the server (default port 8080)
 go run ./cmd/server
-# Admin password will be printed to stdout on first run
+# Admin email and password will be printed to stdout on first run
 ```
 
 ### Frontend
@@ -114,10 +117,11 @@ npm run dev
 
 ```bash
 cp .env.example .env
-# Edit .env -- at minimum set SPACEBALLONE_MASTER_KEY
+# Edit .env -- at minimum set SPACEBALLONE_MASTER_KEY and DEFAULT_ADMIN_PASSWORD
 
 docker compose up --build
-# App available at https://localhost (Caddy serves with self-signed cert)
+# Frontend at http://localhost:3000
+# API proxied through frontend at /api/*
 # PostgreSQL on :5432 for dev access
 ```
 
@@ -125,35 +129,38 @@ docker compose up --build
 
 ### How it works
 
-Docker Compose runs 4 services:
+Docker Compose runs 3 services (Caddy optional):
 
 ```
-Internet → Caddy (ports 80/443) → API (port 8080, internal)
-                                 → Frontend (port 3000, internal)
-           PostgreSQL (port 5432)
+Internet → Frontend (port 3000) → API (port 8080, internal)
+            PostgreSQL (port 5432)
 ```
 
-**Caddy** is the reverse proxy and handles all HTTPS automatically:
-- Routes `/api/*` to the Go backend
-- Routes everything else to the TanStack Start frontend
-- WebSocket proxying works automatically (terminal, browser stream, status)
+**Frontend** serves the TanStack Start app and proxies `/api/*` to the Go backend:
+
+- Serves static assets and SSR pages from TanStack Start
+- Routes `/api/*` (including WebSockets) to the Go backend
+- Runs on port 3000 via custom Node.js server entry point
 
 ### Local development
 
 ```bash
-DOMAIN=localhost docker compose up --build
-# https://localhost (self-signed cert, browser will warn)
+docker compose up --build
+# http://localhost:3000
 ```
 
-### Production with automatic Let's Encrypt
+### Production
 
 ```bash
-# Set your domain — Caddy auto-provisions a Let's Encrypt cert
-DOMAIN=spaceballone.example.com docker compose up -d
-# https://spaceballone.example.com (valid cert, zero config)
+# Set your admin credentials in .env
+DEFAULT_ADMIN_EMAIL=admin@example.com
+DEFAULT_ADMIN_PASSWORD=a-strong-password
+
+docker compose up -d --build
+# http://your-server:3000
 ```
 
-Requirements: your domain's DNS must point to the server, and ports 80/443 must be open.
+For HTTPS, add Caddy or a reverse proxy in front of port 3000.
 
 ### Cloudflare Tunnel (optional)
 
@@ -168,7 +175,7 @@ CLOUDFLARE_TUNNEL_TOKEN=your-token-here
 docker compose --profile tunnel up -d
 ```
 
-The tunnel connects outbound to Cloudflare, so no open ports are needed. Configure the tunnel's public hostname in Cloudflare to point to `http://caddy:443`.
+The tunnel connects outbound to Cloudflare, so no open ports are needed. Configure the tunnel's public hostname in Cloudflare to point to `http://frontend:3000`.
 
 ### Non-Docker deployment
 
@@ -185,10 +192,12 @@ go run ./cmd/server  # Starts with HTTPS
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `SPACEBALLONE_MASTER_KEY` | Yes | -- | AES-256 key for encrypting SSH credentials |
-| `DOMAIN` | No | `localhost` | Domain for Caddy (set FQDN for auto Let's Encrypt) |
+| `DEFAULT_ADMIN_EMAIL` | No | `admin@spaceballone.local` | Default admin email (set before first run) |
+| `DEFAULT_ADMIN_PASSWORD` | No | random | Default admin password (set before first run) |
+| `DOMAIN` | No | `localhost` | Domain for CORS/URLs |
 | `DATABASE_URL` | No | PostgreSQL in compose | Database connection string |
 | `PORT` | No | `8080` | API server port |
-| `FRONTEND_URL` | No | `https://{DOMAIN}` | Frontend origin for CORS |
+| `FRONTEND_URL` | No | `http://{DOMAIN}:3000` | Frontend origin for CORS |
 | `SESSION_EXPIRY` | No | `24h` | Auth session lifetime |
 | `HEARTBEAT_INTERVAL` | No | `30s` | SSH health check interval |
 | `CLOUDFLARE_TUNNEL_TOKEN` | No | -- | Cloudflare Tunnel token (enable with `--profile tunnel`) |
@@ -242,6 +251,11 @@ This is an experiment. If you find the concept interesting:
 1. Try running it against a real machine and report what breaks
 2. Open issues for bugs you find
 3. The spec at `docs/specs/` describes the full intended behavior
+
+## Built With
+
+- [Claude Code - Opus 4.6](https://claude.ai)
+- [OpenCode - GLM 5.1](https://opencode.ai)
 
 ## License
 
