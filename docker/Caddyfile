@@ -1,0 +1,11 @@
+{$DOMAIN:localhost} {
+	# API and WebSocket routes → Go backend
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	# Everything else → TanStack Start frontend
+	handle {
+		reverse_proxy frontend:3000
+	}
+}

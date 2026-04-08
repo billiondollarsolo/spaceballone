@@ -117,7 +117,67 @@ cp .env.example .env
 # Edit .env -- at minimum set SPACEBALLONE_MASTER_KEY
 
 docker compose up --build
-# API on :8080, Frontend on :3000, PostgreSQL on :5432
+# App available at https://localhost (Caddy serves with self-signed cert)
+# PostgreSQL on :5432 for dev access
+```
+
+## Deployment
+
+### How it works
+
+Docker Compose runs 4 services:
+
+```
+Internet → Caddy (ports 80/443) → API (port 8080, internal)
+                                 → Frontend (port 3000, internal)
+           PostgreSQL (port 5432)
+```
+
+**Caddy** is the reverse proxy and handles all HTTPS automatically:
+- Routes `/api/*` to the Go backend
+- Routes everything else to the TanStack Start frontend
+- WebSocket proxying works automatically (terminal, browser stream, status)
+
+### Local development
+
+```bash
+DOMAIN=localhost docker compose up --build
+# https://localhost (self-signed cert, browser will warn)
+```
+
+### Production with automatic Let's Encrypt
+
+```bash
+# Set your domain — Caddy auto-provisions a Let's Encrypt cert
+DOMAIN=spaceballone.example.com docker compose up -d
+# https://spaceballone.example.com (valid cert, zero config)
+```
+
+Requirements: your domain's DNS must point to the server, and ports 80/443 must be open.
+
+### Cloudflare Tunnel (optional)
+
+Access SpaceBallOne from anywhere without opening ports or configuring DNS manually:
+
+```bash
+# 1. Create a tunnel in the Cloudflare dashboard (Zero Trust > Tunnels)
+# 2. Set the tunnel token in .env
+CLOUDFLARE_TUNNEL_TOKEN=your-token-here
+
+# 3. Start with the tunnel profile
+docker compose --profile tunnel up -d
+```
+
+The tunnel connects outbound to Cloudflare, so no open ports are needed. Configure the tunnel's public hostname in Cloudflare to point to `http://caddy:443`.
+
+### Non-Docker deployment
+
+If running without Docker, the Go backend supports manual TLS:
+
+```bash
+export TLS_CERT_PATH=/path/to/cert.pem
+export TLS_KEY_PATH=/path/to/key.pem
+go run ./cmd/server  # Starts with HTTPS
 ```
 
 ## Environment Variables
@@ -125,13 +185,15 @@ docker compose up --build
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `SPACEBALLONE_MASTER_KEY` | Yes | -- | AES-256 key for encrypting SSH credentials |
-| `DATABASE_URL` | No | `sqlite://spaceballone.db` | Database connection (prefix with `postgres://` for PostgreSQL) |
+| `DOMAIN` | No | `localhost` | Domain for Caddy (set FQDN for auto Let's Encrypt) |
+| `DATABASE_URL` | No | PostgreSQL in compose | Database connection string |
 | `PORT` | No | `8080` | API server port |
-| `FRONTEND_URL` | No | `http://localhost:3000` | Frontend origin for CORS |
+| `FRONTEND_URL` | No | `https://{DOMAIN}` | Frontend origin for CORS |
 | `SESSION_EXPIRY` | No | `24h` | Auth session lifetime |
 | `HEARTBEAT_INTERVAL` | No | `30s` | SSH health check interval |
-| `TLS_CERT_PATH` | No | -- | Path to TLS certificate (enables HTTPS) |
-| `TLS_KEY_PATH` | No | -- | Path to TLS private key |
+| `CLOUDFLARE_TUNNEL_TOKEN` | No | -- | Cloudflare Tunnel token (enable with `--profile tunnel`) |
+| `TLS_CERT_PATH` | No | -- | Manual TLS cert (non-Docker only) |
+| `TLS_KEY_PATH` | No | -- | Manual TLS key (non-Docker only) |
 
 ## Features (Planned/In Progress)
 

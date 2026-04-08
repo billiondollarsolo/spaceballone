@@ -1,21 +1,31 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+      - frontend
+    restart: unless-stopped
+
   api:
     build:
       context: .
       dockerfile: docker/Dockerfile.api
-    ports:
-      - "8080:8080"
     environment:
       - SPACEBALLONE_MASTER_KEY=${SPACEBALLONE_MASTER_KEY}
       - DATABASE_URL=${DATABASE_URL:-postgres://spaceballone:${POSTGRES_PASSWORD:-spaceballone}@db:5432/spaceballone?sslmode=disable}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - FRONTEND_URL=${FRONTEND_URL:-https://${DOMAIN:-localhost}}
       - PORT=8080
       - SESSION_EXPIRY=${SESSION_EXPIRY:-24h}
       - HEARTBEAT_INTERVAL=${HEARTBEAT_INTERVAL:-30s}
-      - TLS_CERT_PATH=${TLS_CERT_PATH:-}
-      - TLS_KEY_PATH=${TLS_KEY_PATH:-}
-    volumes:
-      - api-data:/data
     depends_on:
       - db
     restart: unless-stopped
@@ -24,8 +34,6 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
-    ports:
-      - "3000:3000"
     environment:
       - API_URL=http://api:8080
     depends_on:
@@ -44,6 +52,20 @@ services:
       - "5432:5432"
     restart: unless-stopped
 
+  # Optional: Cloudflare Tunnel for access without port forwarding
+  # Enable with: docker compose --profile tunnel up
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - caddy
+    restart: unless-stopped
+    profiles:
+      - tunnel
+
 volumes:
-  api-data:
+  caddy-data:
+  caddy-config:
   db-data:
