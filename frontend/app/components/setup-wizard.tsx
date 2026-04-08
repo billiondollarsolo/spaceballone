@@ -156,6 +156,7 @@ export function SetupWizard({
               case 'claude_code': updated.claude_code = true; break
               case 'opencode': updated.opencode = true; break
               case 'codex': updated.codex = true; break
+              case 'chromium': updated.chromium = true; break
             }
             setCapabilities(updated)
           }
@@ -187,6 +188,7 @@ export function SetupWizard({
       case 'claude_code': return capabilities.claude_code
       case 'opencode': return capabilities.opencode
       case 'codex': return capabilities.codex
+      case 'chromium': return capabilities.chromium
       default: return false
     }
   }
@@ -198,6 +200,7 @@ export function SetupWizard({
       case 'docker': return capabilities.docker_version
       case 'node': return capabilities.node_version
       case 'go': return capabilities.go_version
+      case 'chromium': return capabilities.chromium_version
       default: return undefined
     }
   }
@@ -210,6 +213,7 @@ export function SetupWizard({
   const optionalPackages: PackageItem[] = [
     { key: 'node', label: 'Node.js', description: 'JavaScript runtime (recommended for JS/TS development)', installed: isInstalled('node'), version: getVersion('node') },
     { key: 'go', label: 'Go', description: 'Go programming language (recommended for Go development)', installed: isInstalled('go'), version: getVersion('go') },
+    { key: 'chromium', label: 'Chromium', description: 'Headless browser for AI agents to browse and test web UIs', installed: isInstalled('chromium'), version: getVersion('chromium') },
   ]
 
   const agentPackages: PackageItem[] = [
@@ -313,6 +317,7 @@ export function SetupWizard({
                     { key: 'claude_code', label: 'Claude Code' },
                     { key: 'opencode', label: 'OpenCode' },
                     { key: 'codex', label: 'Codex' },
+                    { key: 'chromium', label: 'Chromium' },
                   ].map(({ key, label }) => (
                     <div key={key} className="flex items-center gap-2 rounded border p-2 text-sm">
                       {isInstalled(key) ? (

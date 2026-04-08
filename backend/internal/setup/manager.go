@@ -26,6 +26,8 @@ type Capabilities struct {
 	ClaudeCode        bool   `json:"claude_code"`
 	OpenCode          bool   `json:"opencode"`
 	Codex             bool   `json:"codex"`
+	Chromium          bool   `json:"chromium"`
+	ChromiumVersion   string `json:"chromium_version,omitempty"`
 }
 
 // Recommendation describes a recommended package to install.
@@ -106,6 +108,13 @@ func (m *Manager) DiscoverCapabilities(client *ssh.Client) (*Capabilities, error
 		caps.Codex = true
 	}
 
+	// chromium
+	if out, err := sshmanager.RunCommand(client, "which chromium-browser || which chromium || which google-chrome"); err == nil {
+		caps.Chromium = true
+		verOut, _ := sshmanager.RunCommand(client, strings.TrimSpace(out)+" --version 2>/dev/null")
+		caps.ChromiumVersion = strings.TrimSpace(verOut)
+	}
+
 	return caps, nil
 }
 
@@ -178,6 +187,14 @@ func (m *Manager) GetRecommendations(caps *Capabilities) []Recommendation {
 			Description: "Codex CLI - OpenAI coding agent",
 		})
 	}
+	if !caps.Chromium {
+		recs = append(recs, Recommendation{
+			Package:     "chromium",
+			Reason:      "Headless browser for AI agent web interaction",
+			Required:    false,
+			Description: "Chromium - enables agents to browse, screenshot, and test web UIs",
+		})
+	}
 
 	return recs
 }
@@ -222,6 +239,20 @@ func installCommand(pkgMgr, packageName string) (string, error) {
 		return "curl -fsSL https://get.docker.com | sh", nil
 	case "codex":
 		return "npm install -g @openai/codex", nil
+	case "chromium":
+		switch pkgMgr {
+		case "apt":
+			return "sudo apt-get update && sudo apt-get install -y chromium-browser", nil
+		case "dnf":
+			return "sudo dnf install -y chromium", nil
+		case "yum":
+			return "sudo yum install -y chromium", nil
+		case "apk":
+		return "sudo apk add chromium", nil
+	case "brew":
+		return "brew install chromium", nil
+	}
+	return "sudo apt-get update && sudo apt-get install -y chromium-browser || sudo dnf install -y chromium || sudo yum install -y chromium", nil
 	}
 
 	return "", fmt.Errorf("unsupported package: %s", packageName)

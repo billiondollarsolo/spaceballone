@@ -272,8 +272,6 @@ export interface SetupCapabilities {
   tmux_version?: string
   docker: boolean
   docker_version?: string
-  code_server: boolean
-  code_server_version?: string
   node: boolean
   node_version?: string
   go_lang: boolean
@@ -281,6 +279,8 @@ export interface SetupCapabilities {
   claude_code: boolean
   opencode: boolean
   codex: boolean
+  chromium: boolean
+  chromium_version?: string
 }
 
 export interface SetupRecommendation {
