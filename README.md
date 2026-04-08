@@ -256,6 +256,7 @@ This is an experiment. If you find the concept interesting:
 
 - [Claude Code - Opus 4.6](https://claude.ai)
 - [OpenCode - GLM 5.1](https://opencode.ai)
+- [OpenAI GPT 5.4](https://openai.com)
 
 ## License
 
