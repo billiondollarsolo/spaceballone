@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { Check, X, Plug, Unplug, Loader2, Wrench } from 'lucide-react'
 import { Button } from '~/components/ui/button'
@@ -7,7 +7,6 @@ import { StatusDot } from '~/components/status-dot'
 import { useMachine, useConnectMachine, useDisconnectMachine } from '~/lib/machines'
 import { useSetupStatus, hasMissingCoreCapabilities } from '~/lib/setup'
 import { SetupWizard } from '~/components/setup-wizard'
-import type { SetupCapabilities } from '~/lib/api'
 
 export const Route = createFileRoute('/_authenticated/machines/$machineId')({
   component: MachineDetailPage,
@@ -18,32 +17,30 @@ function MachineDetailPage() {
   const { data: machine, isLoading, error } = useMachine(machineId)
   const connectMachine = useConnectMachine()
   const disconnectMachine = useDisconnectMachine()
-  const [wizardOpen, setWizardOpen] = useState(false)
-  const [autoOpenDone, setAutoOpenDone] = useState(false)
+  const [wizardDismissed, setWizardDismissed] = useState(false)
+  const [manualWizardOpen, setManualWizardOpen] = useState(false)
 
   const isConnected = machine?.status === 'connected'
 
   const { data: setupStatus } = useSetupStatus(machineId, isConnected)
 
-  // Auto-open wizard when connecting to a machine with missing core capabilities
-  useEffect(() => {
-    if (
-      isConnected &&
-      setupStatus &&
-      !autoOpenDone &&
-      hasMissingCoreCapabilities(setupStatus.capabilities)
-    ) {
-      setWizardOpen(true)
-      setAutoOpenDone(true)
-    }
-  }, [isConnected, setupStatus, autoOpenDone])
+  // Auto-open wizard when connected with missing core capabilities (unless dismissed)
+  const autoOpen =
+    isConnected &&
+    !!setupStatus &&
+    !wizardDismissed &&
+    hasMissingCoreCapabilities(setupStatus.capabilities)
 
-  // Reset auto-open flag when machine disconnects
-  useEffect(() => {
-    if (!isConnected) {
-      setAutoOpenDone(false)
+  const wizardOpen = manualWizardOpen || autoOpen
+
+  function handleWizardOpenChange(open: boolean) {
+    if (!open) {
+      setManualWizardOpen(false)
+      setWizardDismissed(true)
+    } else {
+      setManualWizardOpen(true)
     }
-  }, [isConnected])
+  }
 
   if (isLoading) {
     return (
@@ -86,7 +83,7 @@ function MachineDetailPage() {
           {isConnected && (
             <Button
               variant="outline"
-              onClick={() => setWizardOpen(true)}
+              onClick={() => handleWizardOpenChange(true)}
             >
               <Wrench className="mr-2 size-4" />
               Run Setup Wizard
@@ -202,7 +199,7 @@ function MachineDetailPage() {
       {/* Setup Wizard Dialog */}
       <SetupWizard
         open={wizardOpen}
-        onOpenChange={setWizardOpen}
+        onOpenChange={handleWizardOpenChange}
         machineId={machineId}
         machineName={machine.name}
       />

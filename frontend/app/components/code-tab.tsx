@@ -18,14 +18,15 @@ export function CodeTab({ session }: CodeTabProps) {
   const startMutation = useStartCodeServer(machineId)
   const stopMutation = useStopCodeServer(machineId)
 
+  const statusUrl = status?.url ?? null
   const iframeSrc = useMemo(() => {
-    if (!status?.running || !status.url) return null
-    const url = new URL(status.url)
+    if (!statusUrl) return null
+    const base = statusUrl.endsWith('/') ? statusUrl : statusUrl + '/'
     if (directoryPath) {
-      url.searchParams.set('folder', directoryPath)
+      return `${base}?folder=${encodeURIComponent(directoryPath)}`
     }
-    return url.toString()
-  }, [status?.running, status?.url, directoryPath])
+    return base
+  }, [statusUrl, directoryPath])
 
   // If no machineId yet, show loading
   if (!machineId) {

@@ -3,7 +3,6 @@ import {
   Menu,
   LogOut,
   KeyRound,
-  User as UserIcon,
   Search,
   X,
   ChevronRight,

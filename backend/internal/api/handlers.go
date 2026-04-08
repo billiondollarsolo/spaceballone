@@ -143,6 +143,7 @@ func NewRouterFromDeps(deps RouterDeps) *chi.Mux {
 				r.Post("/machines/{id}/code-server/stop", csh.StopCodeServer)
 				r.Get("/machines/{id}/code-server/status", csh.CodeServerStatus)
 				r.Post("/machines/{id}/code-server/open", csh.OpenFolder)
+				r.HandleFunc("/code-server-proxy/{machineId}/*", csh.ProxyCodeServer)
 			}
 
 			// Browserless endpoints
@@ -209,14 +210,14 @@ func loginHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		secureCookie := r.TLS != nil || os.Getenv("TLS_CERT_PATH") != ""
+		secureCookie := r.TLS != nil || os.Getenv("TLS_CERT_PATH") != "" || r.Header.Get("X-Forwarded-Proto") == "https"
 		http.SetCookie(w, &http.Cookie{
 			Name:     authmw.SessionCookieName,
 			Value:    session.SessionToken,
 			Path:     "/",
 			HttpOnly: true,
 			Secure:   secureCookie,
-			SameSite: http.SameSiteStrictMode,
+			SameSite: http.SameSiteLaxMode,
 			MaxAge:   int(auth.SessionExpiry().Seconds()),
 		})
 
@@ -232,7 +233,7 @@ func logoutHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(authmw.SessionCookieName)
 		if err == nil && cookie.Value != "" {
-			auth.InvalidateSession(db, cookie.Value)
+			_ = auth.InvalidateSession(db, cookie.Value)
 		}
 
 		http.SetCookie(w, &http.Cookie{
@@ -240,7 +241,7 @@ func logoutHandler(db *gorm.DB) http.HandlerFunc {
 			Value:    "",
 			Path:     "/",
 			HttpOnly: true,
-			SameSite: http.SameSiteStrictMode,
+			SameSite: http.SameSiteLaxMode,
 			MaxAge:   -1,
 		})
 

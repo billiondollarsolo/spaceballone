@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/spaceballone/backend/internal/api"
 	"github.com/spaceballone/backend/internal/auth"
@@ -91,14 +92,22 @@ func main() {
 	certPath := os.Getenv("TLS_CERT_PATH")
 	keyPath := os.Getenv("TLS_KEY_PATH")
 
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      router,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 0, // disabled for WebSocket and SSE streaming
+		IdleTimeout:  120 * time.Second,
+	}
+
 	if certPath != "" && keyPath != "" {
 		log.Printf("SpaceBallOne server starting on %s (TLS)", addr)
-		if err := http.ListenAndServeTLS(addr, certPath, keyPath, router); err != nil {
+		if err := srv.ListenAndServeTLS(certPath, keyPath); err != nil {
 			log.Fatalf("Server failed: %v", err)
 		}
 	} else {
 		log.Printf("SpaceBallOne server starting on %s (plaintext HTTP)", addr)
-		if err := http.ListenAndServe(addr, router); err != nil {
+		if err := srv.ListenAndServe(); err != nil {
 			log.Fatalf("Server failed: %v", err)
 		}
 	}

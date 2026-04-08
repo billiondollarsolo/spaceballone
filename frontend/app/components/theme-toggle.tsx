@@ -23,14 +23,14 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>('light')
+  const [theme, setTheme] = useState<Theme>(() => getInitialTheme())
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    const initial = getInitialTheme()
-    setTheme(initial)
-    applyTheme(initial)
+    applyTheme(theme)
     setMounted(true)
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const toggle = useCallback(() => {

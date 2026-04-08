@@ -103,7 +103,7 @@ func (h *BrowserHandler) HandleBrowserWS(w http.ResponseWriter, r *http.Request)
 	// Start screencast
 	if err := cdp.PageStartScreencast("jpeg", 60, 1280, 720); err != nil {
 		log.Printf("ws/browser: failed to start screencast: %v", err)
-		conn.WriteMessage(websocket.TextMessage, []byte(`{"error":"failed to start screencast"}`))
+		_ = conn.WriteMessage(websocket.TextMessage, []byte(`{"error":"failed to start screencast"}`))
 		return
 	}
 
@@ -117,7 +117,7 @@ func (h *BrowserHandler) HandleBrowserWS(w http.ResponseWriter, r *http.Request)
 				}
 
 				// Ack the frame
-				cdp.PageScreencastFrameAck(params.SessionID)
+				_ = cdp.PageScreencastFrameAck(params.SessionID)
 
 				// Decode base64 image and send as binary
 				imgData, err := base64.StdEncoding.DecodeString(params.Data)
@@ -149,23 +149,23 @@ func (h *BrowserHandler) HandleBrowserWS(w http.ResponseWriter, r *http.Request)
 
 		switch evt.Type {
 		case "mousemove":
-			cdp.InputDispatchMouseEvent("mouseMoved", evt.X, evt.Y, "", 0)
+			_ = cdp.InputDispatchMouseEvent("mouseMoved", evt.X, evt.Y, "", 0)
 		case "click":
 			btn := evt.Button
 			if btn == "" {
 				btn = "left"
 			}
-			cdp.InputDispatchMouseEvent("mousePressed", evt.X, evt.Y, btn, 1)
-			cdp.InputDispatchMouseEvent("mouseReleased", evt.X, evt.Y, btn, 1)
+			_ = cdp.InputDispatchMouseEvent("mousePressed", evt.X, evt.Y, btn, 1)
+			_ = cdp.InputDispatchMouseEvent("mouseReleased", evt.X, evt.Y, btn, 1)
 		case "keydown":
-			cdp.InputDispatchKeyEvent("keyDown", evt.Key, evt.Code, evt.Text)
+			_ = cdp.InputDispatchKeyEvent("keyDown", evt.Key, evt.Code, evt.Text)
 		case "keyup":
-			cdp.InputDispatchKeyEvent("keyUp", evt.Key, evt.Code, "")
+			_ = cdp.InputDispatchKeyEvent("keyUp", evt.Key, evt.Code, "")
 		case "scroll":
-			cdp.InputDispatchMouseEvent("mouseWheel", evt.X, evt.Y, "", 0)
+			_ = cdp.InputDispatchMouseEvent("mouseWheel", evt.X, evt.Y, "", 0)
 		case "navigate":
 			if evt.URL != "" {
-				cdp.PageNavigate(evt.URL)
+				_ = cdp.PageNavigate(evt.URL)
 			}
 		}
 	}

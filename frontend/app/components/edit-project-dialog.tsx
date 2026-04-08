@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -19,23 +19,18 @@ interface EditProjectDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function EditProjectDialog({
+function EditProjectDialogContent({
   project,
-  open,
   onOpenChange,
-}: EditProjectDialogProps) {
-  const [name, setName] = useState('')
+}: {
+  project: Project
+  onOpenChange: (open: boolean) => void
+}) {
+  const [name, setName] = useState(project.name)
   const updateProject = useUpdateProject()
-
-  useEffect(() => {
-    if (project) {
-      setName(project.name)
-    }
-  }, [project])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!project) return
     updateProject.mutate(
       { id: project.id, data: { name } },
       {
@@ -47,35 +42,53 @@ export function EditProjectDialog({
   }
 
   return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Edit Project</DialogTitle>
+        <DialogDescription>Update the project name.</DialogDescription>
+      </DialogHeader>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="edit-project-name">Name</Label>
+          <Input
+            id="edit-project-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </div>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={updateProject.isPending}>
+            {updateProject.isPending ? 'Saving...' : 'Save'}
+          </Button>
+        </DialogFooter>
+      </form>
+    </>
+  )
+}
+
+export function EditProjectDialog({
+  project,
+  open,
+  onOpenChange,
+}: EditProjectDialogProps) {
+  return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit Project</DialogTitle>
-          <DialogDescription>Update the project name.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-project-name">Name</Label>
-            <Input
-              id="edit-project-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={updateProject.isPending}>
-              {updateProject.isPending ? 'Saving...' : 'Save'}
-            </Button>
-          </DialogFooter>
-        </form>
+        {project && (
+          <EditProjectDialogContent
+            key={project.id}
+            project={project}
+            onOpenChange={onOpenChange}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )

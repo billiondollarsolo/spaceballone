@@ -14,19 +14,21 @@ export const searchApi = {
   },
 }
 
+const EMPTY_RESULTS: SearchResult[] = []
+
 export function useSearch(query: string, debounceMs = 300) {
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [searchState, setSearchState] = useState<{
+    results: SearchResult[]
+    fetchedQuery: string
+  }>({ results: EMPTY_RESULTS, fetchedQuery: '' })
   const abortRef = useRef<AbortController | null>(null)
+  const trimmedQuery = query?.trim() ?? ''
+  const isValidQuery = trimmedQuery.length >= 2
 
   useEffect(() => {
-    if (!query || query.trim().length < 2) {
-      setResults([])
-      setIsLoading(false)
+    if (!isValidQuery) {
       return
     }
-
-    setIsLoading(true)
 
     const timeout = setTimeout(async () => {
       // Cancel previous request
@@ -35,15 +37,13 @@ export function useSearch(query: string, debounceMs = 300) {
       abortRef.current = controller
 
       try {
-        const data = await searchApi.search(query.trim(), controller.signal)
+        const data = await searchApi.search(trimmedQuery, controller.signal)
         if (!controller.signal.aborted) {
-          setResults(data)
-          setIsLoading(false)
+          setSearchState({ results: data, fetchedQuery: trimmedQuery })
         }
       } catch {
         if (!controller.signal.aborted) {
-          setResults([])
-          setIsLoading(false)
+          setSearchState({ results: EMPTY_RESULTS, fetchedQuery: trimmedQuery })
         }
       }
     }, debounceMs)
@@ -51,7 +51,11 @@ export function useSearch(query: string, debounceMs = 300) {
     return () => {
       clearTimeout(timeout)
     }
-  }, [query, debounceMs])
+  }, [trimmedQuery, isValidQuery, debounceMs])
+
+  // Derive loading and results from state + current query
+  const results = isValidQuery ? searchState.results : EMPTY_RESULTS
+  const isLoading = isValidQuery && searchState.fetchedQuery !== trimmedQuery
 
   const grouped = useMemo(() => ({
     machines: results.filter((r) => r.type === 'machine'),

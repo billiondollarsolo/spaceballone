@@ -45,15 +45,19 @@ function AuthenticatedLayoutWrapper() {
 
 function AuthenticatedLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [prevPathname, setPrevPathname] = useState('')
   const { data: user } = useAuth()
   const queryClient = useQueryClient()
   const location = useLocation()
   const { addNotification } = useNotifications()
 
-  // Auto-close mobile sidebar on route change
-  useEffect(() => {
-    setSidebarOpen(false)
-  }, [location.pathname])
+  // Auto-close mobile sidebar on route change (setState-during-render pattern)
+  if (prevPathname !== location.pathname) {
+    setPrevPathname(location.pathname)
+    if (sidebarOpen) {
+      setSidebarOpen(false)
+    }
+  }
 
   // Connect to status WebSocket for real-time machine status updates
   useEffect(() => {

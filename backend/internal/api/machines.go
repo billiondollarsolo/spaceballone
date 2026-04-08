@@ -209,7 +209,7 @@ func (h *MachineHandler) DeleteMachine(w http.ResponseWriter, r *http.Request) {
 
 	// Disconnect if connected
 	if h.SSH != nil && h.SSH.IsConnected(id) {
-		h.SSH.Disconnect(id)
+		_ = h.SSH.Disconnect(id)
 	}
 
 	// Cascade delete: sessions via projects

@@ -1,11 +1,17 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _process = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined
 export const API_URL = typeof window !== 'undefined'
-  ? ((window as unknown as Record<string, unknown>).__API_URL__ as string) || 'http://localhost:8080'
-  : 'http://localhost:8080'
+  ? ''  // Browser: use same-origin relative paths (Caddy proxies /api/* to backend)
+  : (_process?.env?.API_URL || 'http://localhost:8080')  // SSR: internal Docker URL
 
 export function getWsUrl(path: string): string {
-  const url = new URL(API_URL)
-  const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-  return `${protocol}//${url.host}${path}`
+  if (typeof window === 'undefined') {
+    // SSR context — shouldn't create WebSockets, but just in case
+    return `ws://localhost:8080${path}`
+  }
+  // Browser: derive WS URL from current page location (same origin)
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${window.location.host}${path}`
 }
 
 export class ApiError extends Error {

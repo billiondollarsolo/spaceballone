@@ -94,7 +94,6 @@ export function useDeleteTerminal() {
   return useMutation({
     mutationFn: ({
       terminalId,
-      sessionId,
     }: {
       terminalId: string
       sessionId: string

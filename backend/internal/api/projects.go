@@ -164,7 +164,7 @@ func (h *ProjectHandler) DeleteProject(w http.ResponseWriter, r *http.Request) {
 		if h.SSH != nil && h.SSH.IsConnected(project.MachineID) {
 			client, err := h.SSH.GetConnection(project.MachineID)
 			if err == nil {
-				h.Terminal.KillTmuxSession(client, terminal.SessionName(s.ID))
+				_ = h.Terminal.KillTmuxSession(client, terminal.SessionName(s.ID))
 			}
 		}
 		h.DB.Where("session_id = ?", s.ID).Delete(&models.TerminalTab{})
@@ -259,11 +259,4 @@ func parseLsOutput(output string) []FileEntry {
 // shellQuote wraps a string for safe shell usage.
 func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'"
-}
-
-// escapeJSON escapes a string for inclusion in a JSON string literal.
-func escapeJSON(s string) string {
-	s = strings.ReplaceAll(s, `\`, `\\`)
-	s = strings.ReplaceAll(s, `"`, `\"`)
-	return s
 }

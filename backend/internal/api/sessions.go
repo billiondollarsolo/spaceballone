@@ -222,7 +222,7 @@ func (h *SessionHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
 		if h.SSH != nil && h.SSH.IsConnected(project.MachineID) {
 			client, err := h.SSH.GetConnection(project.MachineID)
 			if err == nil {
-				h.Terminal.KillTmuxSession(client, terminal.SessionName(session.ID))
+				_ = h.Terminal.KillTmuxSession(client, terminal.SessionName(session.ID))
 			}
 		}
 	}
@@ -300,7 +300,7 @@ func (h *SessionHandler) DeleteTerminal(w http.ResponseWriter, r *http.Request) 
 			if h.SSH != nil && h.SSH.IsConnected(project.MachineID) {
 				client, err := h.SSH.GetConnection(project.MachineID)
 				if err == nil {
-					h.Terminal.KillTmuxWindow(client, terminal.SessionName(session.ID), tab.TmuxWindowIndex)
+					_ = h.Terminal.KillTmuxWindow(client, terminal.SessionName(session.ID), tab.TmuxWindowIndex)
 				}
 			}
 		}

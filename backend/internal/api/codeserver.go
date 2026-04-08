@@ -3,7 +3,9 @@ package api
 import (
 	"log"
 	"net/http"
-	"strconv"
+	"net/http/httputil"
+	"net/url"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/spaceballone/backend/internal/codeserver"
@@ -35,8 +37,9 @@ func (h *CodeServerHandler) StartCodeServer(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	_ = port // tunnel port used internally; expose via reverse proxy path
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"url": "http://localhost:" + strconv.Itoa(port),
+		"url": "/api/code-server-proxy/" + machineID,
 	})
 }
 
@@ -79,9 +82,10 @@ func (h *CodeServerHandler) CodeServerStatus(w http.ResponseWriter, r *http.Requ
 	}
 
 	if running {
-		u := h.CodeServer.GetTunnelURL(machineID)
-		if u != "" {
-			url = &u
+		tunnelURL := h.CodeServer.GetTunnelURL(machineID)
+		if tunnelURL != "" {
+			proxyURL := "/api/code-server-proxy/" + machineID
+			url = &proxyURL
 		}
 	}
 
@@ -101,13 +105,42 @@ func (h *CodeServerHandler) OpenFolder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url := h.CodeServer.GetTunnelURL(machineID)
-	if url == "" {
+	tunnelURL := h.CodeServer.GetTunnelURL(machineID)
+	if tunnelURL == "" {
 		writeError(w, http.StatusBadRequest, "code-server is not running or no tunnel available")
 		return
 	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"url": url + "/?folder=" + folder,
+		"url": "/api/code-server-proxy/" + machineID + "/?folder=" + folder,
 	})
+}
+
+// ProxyCodeServer reverse-proxies requests to the code-server SSH tunnel.
+func (h *CodeServerHandler) ProxyCodeServer(w http.ResponseWriter, r *http.Request) {
+	machineID := chi.URLParam(r, "machineId")
+
+	tunnelURL := h.CodeServer.GetTunnelURL(machineID)
+	if tunnelURL == "" {
+		writeError(w, http.StatusBadGateway, "code-server is not running")
+		return
+	}
+
+	target, err := url.Parse(tunnelURL)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "invalid tunnel URL")
+		return
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(target)
+
+	// Strip the proxy prefix from the path
+	prefix := "/api/code-server-proxy/" + machineID
+	r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
+	if r.URL.Path == "" {
+		r.URL.Path = "/"
+	}
+	r.Host = target.Host
+
+	proxy.ServeHTTP(w, r)
 }

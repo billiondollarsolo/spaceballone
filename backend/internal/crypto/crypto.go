@@ -24,12 +24,6 @@ func ValidateMasterKey() error {
 	return nil
 }
 
-// deriveKey derives a 32-byte AES-256 key from the master key string using SHA-256.
-func deriveKey(masterKey string) []byte {
-	hash := sha256.Sum256([]byte(masterKey))
-	return hash[:]
-}
-
 var (
 	cachedKey    []byte
 	cachedKeyErr error
