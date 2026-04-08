@@ -13,7 +13,10 @@ import (
 )
 
 // Manager manages Browserless Docker containers on remote machines.
-type Manager struct{}
+type Manager struct {
+	OnBrowserStart func(client *ssh.Client)
+	OnBrowserStop  func(client *ssh.Client)
+}
 
 // NewManager creates a new Browserless manager.
 func NewManager() *Manager {
@@ -51,6 +54,10 @@ func (m *Manager) StartBrowserless(client *ssh.Client, machineID string) error {
 		return fmt.Errorf("browserless: timed out waiting for container to start")
 	}
 
+	if m.OnBrowserStart != nil {
+		m.OnBrowserStart(client)
+	}
+
 	return nil
 }
 
@@ -60,6 +67,11 @@ func (m *Manager) StopBrowserless(client *ssh.Client) error {
 	if err != nil {
 		return fmt.Errorf("browserless: failed to stop container: %w", err)
 	}
+
+	if m.OnBrowserStop != nil {
+		m.OnBrowserStop(client)
+	}
+
 	return nil
 }
 

@@ -168,6 +168,24 @@ func (m *Manager) SessionExists(client *ssh.Client, sessionName string) bool {
 	return strings.TrimSpace(out) == "yes"
 }
 
+// SetTmuxEnv sets an environment variable in a tmux session.
+func SetTmuxEnv(client *ssh.Client, sessionName, key, value string) error {
+	cmd := fmt.Sprintf("tmux setenv -t %s %s %s", shellEscape(sessionName), shellEscape(key), shellEscape(value))
+	if _, err := sshmanager.RunCommand(client, cmd); err != nil {
+		return fmt.Errorf("terminal: failed to set tmux env %s: %w", key, err)
+	}
+	return nil
+}
+
+// UnsetTmuxEnv removes an environment variable from a tmux session.
+func UnsetTmuxEnv(client *ssh.Client, sessionName, key string) error {
+	cmd := fmt.Sprintf("tmux setenv -u -t %s %s", shellEscape(sessionName), shellEscape(key))
+	if _, err := sshmanager.RunCommand(client, cmd); err != nil {
+		return fmt.Errorf("terminal: failed to unset tmux env %s: %w", key, err)
+	}
+	return nil
+}
+
 // shellEscape wraps a string in single quotes for safe shell usage.
 func shellEscape(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'"

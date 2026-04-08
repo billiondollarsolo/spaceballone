@@ -12,6 +12,7 @@ import (
 	"github.com/spaceballone/backend/internal/browser"
 	authmw "github.com/spaceballone/backend/internal/middleware"
 	"github.com/spaceballone/backend/internal/models"
+	"github.com/spaceballone/backend/internal/ports"
 	"github.com/spaceballone/backend/internal/setup"
 	sshmanager "github.com/spaceballone/backend/internal/ssh"
 	"github.com/spaceballone/backend/internal/terminal"
@@ -26,6 +27,7 @@ type RouterDeps struct {
 	WS       *ws.Hub
 	Browser  *browser.Manager
 	Terminal *terminal.Manager
+	Ports    *ports.Manager
 }
 
 // NewRouter creates and configures the Chi router with all routes.
@@ -139,6 +141,12 @@ func NewRouterFromDeps(deps RouterDeps) *chi.Mux {
 				r.Post("/machines/{id}/browserless/start", blh.StartBrowserless)
 				r.Post("/machines/{id}/browserless/stop", blh.StopBrowserless)
 				r.Get("/machines/{id}/browserless/status", blh.BrowserlessStatus)
+			}
+
+			// Port scanning endpoints
+			if deps.Ports != nil {
+				poh := &PortHandler{DB: deps.DB, SSH: deps.SSH, Ports: deps.Ports}
+				r.Get("/machines/{id}/ports", poh.ListPorts)
 			}
 
 			// Setup wizard endpoints

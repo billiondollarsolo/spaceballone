@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spaceballone/backend/internal/api"
@@ -13,6 +14,7 @@ import (
 	"github.com/spaceballone/backend/internal/crypto"
 	"github.com/spaceballone/backend/internal/db"
 	"github.com/spaceballone/backend/internal/models"
+	"github.com/spaceballone/backend/internal/ports"
 	sshmanager "github.com/spaceballone/backend/internal/ssh"
 	"github.com/spaceballone/backend/internal/terminal"
 	"github.com/spaceballone/backend/internal/ws"
@@ -59,6 +61,35 @@ func main() {
 	// Terminal manager (shared with router)
 	termMgr := terminal.NewManager()
 
+	// Port scanner manager
+	portsMgr := ports.NewManager()
+
+	// Wire browser lifecycle to inject/remove agent env vars in tmux sessions
+	brMgr.OnBrowserStart = func(client *ssh.Client) {
+		sessions, err := termMgr.ListTmuxSessions(client)
+		if err != nil {
+			return
+		}
+		for _, name := range sessions {
+			if strings.HasPrefix(name, "sbo-") {
+				_ = terminal.SetTmuxEnv(client, name, "CHROME_CDP_URL", "http://127.0.0.1:9222")
+				_ = terminal.SetTmuxEnv(client, name, "BROWSERLESS_URL", "http://127.0.0.1:9222")
+			}
+		}
+	}
+	brMgr.OnBrowserStop = func(client *ssh.Client) {
+		sessions, err := termMgr.ListTmuxSessions(client)
+		if err != nil {
+			return
+		}
+		for _, name := range sessions {
+			if strings.HasPrefix(name, "sbo-") {
+				_ = terminal.UnsetTmuxEnv(client, name, "CHROME_CDP_URL")
+				_ = terminal.UnsetTmuxEnv(client, name, "BROWSERLESS_URL")
+			}
+		}
+	}
+
 	// Wire SSH reconnect callback to recover sessions
 	sessionHandler := &api.SessionHandler{DB: database, SSH: sshMgr, Terminal: termMgr, Hub: wsHub}
 	sshMgr.OnReconnect = func(machineID string) {
@@ -80,6 +111,7 @@ func main() {
 		WS:       wsHub,
 		Browser:  brMgr,
 		Terminal: termMgr,
+		Ports:    portsMgr,
 	})
 
 	// Start server

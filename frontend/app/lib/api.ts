@@ -253,6 +253,16 @@ export interface BrowserlessStatus {
   running: boolean
 }
 
+// Port types
+export interface DiscoveredPort {
+  port: number
+  pid: number
+  command: string
+  project_dir?: string
+  is_http: boolean
+  url?: string
+}
+
 // Browserless API
 export const browserlessApi = {
   start(machineId: string) {
@@ -263,6 +273,14 @@ export const browserlessApi = {
   },
   status(machineId: string) {
     return api.get<BrowserlessStatus>(`/api/machines/${machineId}/browserless/status`)
+  },
+}
+
+// Port API
+export const portApi = {
+  list(machineId: string, projectDir?: string) {
+    const params = projectDir ? `?project_dir=${encodeURIComponent(projectDir)}` : ''
+    return api.get<DiscoveredPort[]>(`/api/machines/${machineId}/ports${params}`)
   },
 }
 

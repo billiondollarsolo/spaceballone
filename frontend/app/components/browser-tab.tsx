@@ -16,9 +16,10 @@ const STREAM_HEIGHT = 720
 
 interface BrowserTabProps {
   session: Session
+  initialUrl?: string
 }
 
-export function BrowserTab({ session }: BrowserTabProps) {
+export function BrowserTab({ session, initialUrl }: BrowserTabProps) {
   const { data: project } = useProject(session.project_id)
   const machineId = project?.machine_id ?? ''
 
@@ -74,18 +75,19 @@ export function BrowserTab({ session }: BrowserTabProps) {
     )
   }
 
-  return <BrowserStream sessionId={session.id} onStop={() => stopMutation.mutate()} stopping={stopMutation.isPending} />
+  return <BrowserStream sessionId={session.id} onStop={() => stopMutation.mutate()} stopping={stopMutation.isPending} initialUrl={initialUrl} />
 }
 
 interface BrowserStreamProps {
   sessionId: string
   onStop: () => void
   stopping: boolean
+  initialUrl?: string
 }
 
 type BrowserConnState = 'connecting' | 'connected' | 'disconnected'
 
-function BrowserStream({ sessionId, onStop, stopping }: BrowserStreamProps) {
+function BrowserStream({ sessionId, onStop, stopping, initialUrl }: BrowserStreamProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const prevBlobUrlRef = useRef<string | null>(null)
@@ -93,8 +95,15 @@ function BrowserStream({ sessionId, onStop, stopping }: BrowserStreamProps) {
   const lastMouseSentRef = useRef(0)
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectCount = useRef(0)
-  const [urlInput, setUrlInput] = useState('https://')
+  const [urlInput, setUrlInput] = useState(initialUrl ?? 'https://')
   const [connState, setConnState] = useState<BrowserConnState>('connecting')
+
+  const sendMessage = useCallback((msg: Record<string, unknown>) => {
+    const ws = wsRef.current
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(msg))
+    }
+  }, [])
 
   // Initialize the Image object once
   useEffect(() => {
@@ -103,6 +112,14 @@ function BrowserStream({ sessionId, onStop, stopping }: BrowserStreamProps) {
       imgRef.current = null
     }
   }, [])
+
+  // Navigate when initialUrl changes
+  useEffect(() => {
+    if (initialUrl && wsRef.current?.readyState === WebSocket.OPEN) {
+      sendMessage({ type: 'navigate', url: initialUrl })
+      setUrlInput(initialUrl)
+    }
+  }, [initialUrl, sendMessage])
 
   // WebSocket connection with reconnection
   useEffect(() => {
@@ -191,13 +208,6 @@ function BrowserStream({ sessionId, onStop, stopping }: BrowserStreamProps) {
       }
     }
   }, [sessionId])
-
-  const sendMessage = useCallback((msg: Record<string, unknown>) => {
-    const ws = wsRef.current
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(msg))
-    }
-  }, [])
 
   const handleNavigate = useCallback(() => {
     if (urlInput.trim()) {
