@@ -1,42 +1,26 @@
-import { Globe, FolderTree, Loader2, Wifi } from 'lucide-react'
+import { FolderTree, ExternalLink, Loader2 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { usePorts } from '~/lib/ports'
-import { useBrowserlessStatus, useStartBrowserless } from '~/lib/browserless'
 import type { DiscoveredPort } from '~/lib/api'
 
 interface WorkspaceToolbarProps {
   machineId: string
   projectDir?: string
-  showBrowser: boolean
-  onToggleBrowser: () => void
   showFiles: boolean
   onToggleFiles: () => void
-  onNavigateToPort: (url: string) => void
 }
 
 export function WorkspaceToolbar({
   machineId,
   projectDir,
-  showBrowser,
-  onToggleBrowser,
   showFiles,
   onToggleFiles,
-  onNavigateToPort,
 }: WorkspaceToolbarProps) {
   const { data: ports, isLoading: portsLoading } = usePorts(machineId, projectDir)
-  const { data: browserStatus } = useBrowserlessStatus(machineId)
-  const startBrowserless = useStartBrowserless(machineId)
 
   function handlePortClick(port: DiscoveredPort) {
-    if (!browserStatus?.running) {
-      startBrowserless.mutate(undefined, {
-        onSuccess: () => {
-          setTimeout(() => onNavigateToPort(port.url ?? `http://127.0.0.1:${port.port}`), 2000)
-        },
-      })
-    } else {
-      onNavigateToPort(port.url ?? `http://127.0.0.1:${port.port}`)
-    }
+    const url = `/api/proxy/${machineId}/${port.port}/`
+    window.open(url, '_blank', 'noopener')
   }
 
   return (
@@ -50,15 +34,6 @@ export function WorkspaceToolbar({
         >
           <FolderTree className="size-3.5" />
           Files
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`h-7 gap-1.5 text-xs ${showBrowser ? 'bg-accent' : ''}`}
-          onClick={onToggleBrowser}
-        >
-          <Globe className="size-3.5" />
-          Browser
         </Button>
       </div>
 
@@ -76,13 +51,14 @@ export function WorkspaceToolbar({
             key={port.port}
             type="button"
             onClick={() => handlePortClick(port)}
-            className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs hover:bg-accent transition-colors"
+            className="flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs hover:bg-accent transition-colors"
           >
             <span className={`size-1.5 rounded-full ${port.is_http ? 'bg-green-500' : 'bg-gray-400'}`} />
             <span className="font-mono">:{port.port}</span>
             <span className="text-muted-foreground">
               {extractCommandName(port.command)}
             </span>
+            <ExternalLink className="size-2.5 text-muted-foreground" />
           </button>
         ))}
       </div>

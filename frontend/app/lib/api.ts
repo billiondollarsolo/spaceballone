@@ -248,11 +248,6 @@ export const terminalApi = {
   },
 }
 
-// Browserless types
-export interface BrowserlessStatus {
-  running: boolean
-}
-
 // Port types
 export interface DiscoveredPort {
   port: number
@@ -261,19 +256,6 @@ export interface DiscoveredPort {
   project_dir?: string
   is_http: boolean
   url?: string
-}
-
-// Browserless API
-export const browserlessApi = {
-  start(machineId: string) {
-    return api.post<void>(`/api/machines/${machineId}/browserless/start`)
-  },
-  stop(machineId: string) {
-    return api.post<void>(`/api/machines/${machineId}/browserless/stop`)
-  },
-  status(machineId: string) {
-    return api.get<BrowserlessStatus>(`/api/machines/${machineId}/browserless/status`)
-  },
 }
 
 // Port API

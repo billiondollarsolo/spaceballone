@@ -33,7 +33,7 @@ func setupMachineTestRouter(t *testing.T) (http.Handler, *http.Cookie) {
 	})
 	t.Cleanup(func() { sshMgr.Stop() })
 
-	router := NewRouterWithDeps(db, sshMgr, wsHub, nil, nil)
+	router := NewRouterWithDeps(db, sshMgr, wsHub, nil)
 	cookie := loginAndGetCookie(t, router, "newpass123")
 
 	return router, cookie
@@ -300,7 +300,7 @@ func TestMachineEndpointsRequireAuth(t *testing.T) {
 	wsHub := ws.NewHub()
 	sshMgr := sshmanager.NewManager(db, func(machineID, status string) {})
 	defer sshMgr.Stop()
-	router := NewRouterWithDeps(db, sshMgr, wsHub, nil, nil)
+	router := NewRouterWithDeps(db, sshMgr, wsHub, nil)
 
 	endpoints := []struct {
 		method string

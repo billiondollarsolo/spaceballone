@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/spaceballone/backend/internal/auth"
-	"github.com/spaceballone/backend/internal/browser"
 	authmw "github.com/spaceballone/backend/internal/middleware"
 	"github.com/spaceballone/backend/internal/models"
 	"github.com/spaceballone/backend/internal/ports"
@@ -25,7 +24,6 @@ type RouterDeps struct {
 	DB       *gorm.DB
 	SSH      *sshmanager.Manager
 	WS       *ws.Hub
-	Browser  *browser.Manager
 	Terminal *terminal.Manager
 	Ports    *ports.Manager
 }
@@ -38,12 +36,11 @@ func NewRouter(db *gorm.DB) *chi.Mux {
 
 // NewRouterWithDeps creates the router with optional SSH manager and WS hub dependencies.
 // Deprecated: prefer NewRouterFromDeps with a RouterDeps struct.
-func NewRouterWithDeps(db *gorm.DB, sshMgr *sshmanager.Manager, wsHub *ws.Hub, brMgr *browser.Manager) *chi.Mux {
+func NewRouterWithDeps(db *gorm.DB, sshMgr *sshmanager.Manager, wsHub *ws.Hub, _ interface{}) *chi.Mux {
 	return NewRouterFromDeps(RouterDeps{
-		DB:      db,
-		SSH:     sshMgr,
-		WS:      wsHub,
-		Browser: brMgr,
+		DB:  db,
+		SSH: sshMgr,
+		WS:  wsHub,
 	})
 }
 
@@ -84,11 +81,6 @@ func NewRouterFromDeps(deps RouterDeps) *chi.Mux {
 	if deps.SSH != nil && deps.WS != nil {
 		th := &ws.TerminalHandler{DB: deps.DB, SSH: deps.SSH, Terminal: termMgr}
 		r.Get("/api/ws/terminal/{terminalId}", th.HandleTerminalWS)
-
-		if deps.Browser != nil {
-			bh := &ws.BrowserHandler{DB: deps.DB, SSH: deps.SSH, Browser: deps.Browser}
-			r.Get("/api/ws/browser/{sessionId}", bh.HandleBrowserWS)
-		}
 	}
 
 	// Auth middleware for /api routes
@@ -135,19 +127,15 @@ func NewRouterFromDeps(deps RouterDeps) *chi.Mux {
 			r.Post("/sessions/{id}/terminals", sh.CreateTerminal)
 			r.Delete("/terminals/{id}", sh.DeleteTerminal)
 
-			// Browserless endpoints
-			if deps.Browser != nil {
-				blh := &BrowserlessHandler{DB: deps.DB, SSH: deps.SSH, Browser: deps.Browser}
-				r.Post("/machines/{id}/browserless/start", blh.StartBrowserless)
-				r.Post("/machines/{id}/browserless/stop", blh.StopBrowserless)
-				r.Get("/machines/{id}/browserless/status", blh.BrowserlessStatus)
-			}
-
 			// Port scanning endpoints
 			if deps.Ports != nil {
 				poh := &PortHandler{DB: deps.DB, SSH: deps.SSH, Ports: deps.Ports}
 				r.Get("/machines/{id}/ports", poh.ListPorts)
 			}
+
+			// SSH HTTP proxy
+			proxyH := &ProxyHandler{DB: deps.DB, SSH: deps.SSH}
+			r.Handle("/proxy/{machineId}/{port}/*", proxyH)
 
 			// Setup wizard endpoints
 			setupMgr := setup.NewManager(deps.DB, deps.SSH)
