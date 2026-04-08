@@ -18,6 +18,7 @@ import (
 	sshmanager "github.com/spaceballone/backend/internal/ssh"
 	"github.com/spaceballone/backend/internal/terminal"
 	"github.com/spaceballone/backend/internal/ws"
+	"golang.org/x/crypto/ssh"
 )
 
 func main() {
