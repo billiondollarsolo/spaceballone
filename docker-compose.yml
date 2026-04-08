@@ -3,13 +3,8 @@ services:
     image: caddy:2-alpine
     ports:
       - "80:80"
-      - "443:443"
-    environment:
-      - DOMAIN=${DOMAIN:-localhost}
     volumes:
       - ./docker/Caddyfile:/etc/caddy/Caddyfile
-      - caddy-data:/data
-      - caddy-config:/config
     depends_on:
       - api
       - frontend
@@ -22,18 +17,23 @@ services:
     environment:
       - SPACEBALLONE_MASTER_KEY=${SPACEBALLONE_MASTER_KEY}
       - DATABASE_URL=${DATABASE_URL:-postgres://spaceballone:${POSTGRES_PASSWORD:-spaceballone}@db:5432/spaceballone?sslmode=disable}
-      - FRONTEND_URL=${FRONTEND_URL:-https://${DOMAIN:-localhost}}
+      - FRONTEND_URL=${FRONTEND_URL:-http://${DOMAIN:-localhost}:3000}
       - PORT=8080
       - SESSION_EXPIRY=${SESSION_EXPIRY:-24h}
       - HEARTBEAT_INTERVAL=${HEARTBEAT_INTERVAL:-30s}
+      - DEFAULT_ADMIN_EMAIL=${DEFAULT_ADMIN_EMAIL:-admin@spaceballone.local}
+      - DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD:-changeme}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
   frontend:
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "3000:3000"
     environment:
       - API_URL=http://api:8080
     depends_on:
@@ -50,6 +50,11 @@ services:
       - db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spaceballone"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   # Optional: Cloudflare Tunnel for access without port forwarding

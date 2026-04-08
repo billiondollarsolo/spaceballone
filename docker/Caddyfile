@@ -1,4 +1,4 @@
-{$DOMAIN:localhost} {
+:80 {
 	# API and WebSocket routes → Go backend
 	handle /api/* {
 		reverse_proxy api:8080

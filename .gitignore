@@ -8,6 +8,9 @@ dist/
 backend/spaceballone
 backend/server
 
+# Generated
+frontend/app/routeTree.gen.ts
+
 # Database
 *.db
 *.sqlite

@@ -19,13 +19,13 @@ func setupMachineTestRouter(t *testing.T) (http.Handler, *http.Cookie) {
 	t.Cleanup(func() { os.Unsetenv("SPACEBALLONE_MASTER_KEY") })
 
 	db := setupTestDB(t)
-	if _, err := auth.EnsureDefaultAdmin(db); err != nil {
+	if _, _, err := auth.EnsureDefaultAdmin(db); err != nil {
 		t.Fatal(err)
 	}
 
 	// Change password to clear must_change_password
 	hash, _ := auth.HashPassword("newpass123")
-	db.Exec("UPDATE users SET password_hash = ?, must_change_password = false WHERE username = 'admin'", hash)
+	db.Exec("UPDATE users SET password_hash = ?, must_change_password = false WHERE email = 'admin@spaceballone.local'", hash)
 
 	wsHub := ws.NewHub()
 	sshMgr := sshmanager.NewManager(db, func(machineID, status string) {

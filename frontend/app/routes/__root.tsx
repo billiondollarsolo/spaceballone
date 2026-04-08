@@ -6,6 +6,7 @@ import {
   HeadContent,
   Scripts,
 } from '@tanstack/react-router'
+import { QueryClientProvider } from '@tanstack/react-query'
 import type { QueryClient } from '@tanstack/react-query'
 import appCss from '~/styles/globals.css?url'
 
@@ -27,20 +28,20 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: 'stylesheet', href: appCss },
     ],
     scripts: [
-      // Inline script to apply theme before paint to prevent flash
       {
         children: `(function(){try{var t=localStorage.getItem('spaceballone-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})()`,
       },
     ],
   }),
   component: RootComponent,
+  shellComponent: RootDocument,
 })
 
 function RootComponent() {
   return (
-    <RootDocument>
+    <QueryClientProvider client={Route.useRouteContext().queryClient}>
       <Outlet />
-    </RootDocument>
+    </QueryClientProvider>
   )
 }
 

@@ -31,7 +31,7 @@ func generateUUID(id *string) {
 // User represents the application user (single-user auth).
 type User struct {
 	ID                 string    `gorm:"type:text;primaryKey" json:"id"`
-	Username           string    `gorm:"uniqueIndex;not null" json:"username"`
+	Email              string    `gorm:"uniqueIndex;not null" json:"email"`
 	PasswordHash       string    `gorm:"not null" json:"-"`
 	MustChangePassword bool      `gorm:"default:true" json:"must_change_password"`
 	CreatedAt          time.Time `json:"created_at"`
@@ -50,7 +50,7 @@ type Machine struct {
 	Host                 string     `gorm:"not null" json:"host"`
 	Port                 int        `gorm:"default:22" json:"port"`
 	AuthType             string     `gorm:"not null" json:"auth_type"` // "key" or "password"
-	EncryptedCredentials []byte     `gorm:"type:blob" json:"-"`
+	EncryptedCredentials []byte     `gorm:"type:bytea" json:"-"`
 	HostKeyFingerprint   string     `gorm:"type:text" json:"host_key_fingerprint,omitempty"`
 	Status               string     `gorm:"default:disconnected" json:"status"`
 	Capabilities         string     `gorm:"type:text" json:"capabilities"` // JSON string

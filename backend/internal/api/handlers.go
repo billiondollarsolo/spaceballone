@@ -203,13 +203,13 @@ func clearSessionCookie(w http.ResponseWriter, r *http.Request) {
 }
 
 type loginRequest struct {
-	Username string `json:"username"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
 type loginResponse struct {
 	ID                 string `json:"id"`
-	Username           string `json:"username"`
+	Email              string `json:"email"`
 	MustChangePassword bool   `json:"must_change_password"`
 }
 
@@ -222,7 +222,7 @@ func loginHandler(db *gorm.DB) http.HandlerFunc {
 		}
 
 		var user models.User
-		if err := db.Where("username = ?", req.Username).First(&user).Error; err != nil {
+		if err := db.Where("email = ?", req.Email).First(&user).Error; err != nil {
 			writeError(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
@@ -242,7 +242,7 @@ func loginHandler(db *gorm.DB) http.HandlerFunc {
 
 		writeJSON(w, http.StatusOK, loginResponse{
 			ID:                 user.ID,
-			Username:           user.Username,
+			Email:              user.Email,
 			MustChangePassword: user.MustChangePassword,
 		})
 	}
@@ -270,7 +270,7 @@ func meHandler(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"id":                   user.ID,
-		"username":             user.Username,
+		"email":                user.Email,
 		"must_change_password": user.MustChangePassword,
 	})
 }

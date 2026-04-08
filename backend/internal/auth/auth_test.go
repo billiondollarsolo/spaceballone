@@ -61,7 +61,7 @@ func TestEnsureDefaultAdmin(t *testing.T) {
 	db := setupTestDB(t)
 
 	// First call should create admin
-	password, err := EnsureDefaultAdmin(db)
+	_, password, err := EnsureDefaultAdmin(db)
 	if err != nil {
 		t.Fatalf("EnsureDefaultAdmin failed: %v", err)
 	}
@@ -71,7 +71,7 @@ func TestEnsureDefaultAdmin(t *testing.T) {
 
 	// Verify admin user exists
 	var user models.User
-	if err := db.Where("username = ?", "admin").First(&user).Error; err != nil {
+	if err := db.Where("email = ?", "admin@spaceballone.local").First(&user).Error; err != nil {
 		t.Fatalf("admin user not found: %v", err)
 	}
 	if !user.MustChangePassword {
@@ -82,7 +82,7 @@ func TestEnsureDefaultAdmin(t *testing.T) {
 	}
 
 	// Second call should not create another admin
-	password2, err := EnsureDefaultAdmin(db)
+	_, password2, err := EnsureDefaultAdmin(db)
 	if err != nil {
 		t.Fatalf("second EnsureDefaultAdmin failed: %v", err)
 	}
@@ -94,11 +94,11 @@ func TestEnsureDefaultAdmin(t *testing.T) {
 func TestCreateAndValidateSession(t *testing.T) {
 	db := setupTestDB(t)
 
-	password, _ := EnsureDefaultAdmin(db)
+	_, password, _ := EnsureDefaultAdmin(db)
 	_ = password
 
 	var user models.User
-	db.Where("username = ?", "admin").First(&user)
+	db.Where("email = ?", "admin@spaceballone.local").First(&user)
 
 	session, err := CreateSession(db, user.ID)
 	if err != nil {
@@ -129,7 +129,7 @@ func TestInvalidateSession(t *testing.T) {
 	EnsureDefaultAdmin(db)
 
 	var user models.User
-	db.Where("username = ?", "admin").First(&user)
+	db.Where("email = ?", "admin@spaceballone.local").First(&user)
 
 	session, _ := CreateSession(db, user.ID)
 
@@ -148,7 +148,7 @@ func TestInvalidateUserSessions(t *testing.T) {
 	EnsureDefaultAdmin(db)
 
 	var user models.User
-	db.Where("username = ?", "admin").First(&user)
+	db.Where("email = ?", "admin@spaceballone.local").First(&user)
 
 	session1, _ := CreateSession(db, user.ID)
 	session2, _ := CreateSession(db, user.ID)

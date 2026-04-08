@@ -280,8 +280,8 @@ export function Header({ onToggleSidebar }: HeaderProps) {
   const logout = useLogout()
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
 
-  const initials = user?.username
-    ? user.username.slice(0, 2).toUpperCase()
+  const initials = user?.email
+    ? user.email.slice(0, 2).toUpperCase()
     : '??'
 
   return (
@@ -340,7 +340,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user.username}</p>
+                  <p className="text-sm font-medium leading-none">{user.email}</p>
                   <p className="text-xs leading-none text-muted-foreground">
                     Administrator
                   </p>

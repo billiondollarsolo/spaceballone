@@ -101,35 +101,44 @@ func GenerateRandomPassword() (string, error) {
 
 // EnsureDefaultAdmin creates the default admin user if no users exist.
 // Returns the generated password (empty string if admin already exists).
-func EnsureDefaultAdmin(db *gorm.DB) (string, error) {
+func EnsureDefaultAdmin(db *gorm.DB) (string, string, error) {
 	var count int64
 	if err := db.Model(&models.User{}).Count(&count).Error; err != nil {
-		return "", fmt.Errorf("failed to count users: %w", err)
+		return "", "", fmt.Errorf("failed to count users: %w", err)
 	}
 	if count > 0 {
-		return "", nil
+		return "", "", nil
 	}
 
-	password, err := GenerateRandomPassword()
-	if err != nil {
-		return "", fmt.Errorf("failed to generate password: %w", err)
+	email := os.Getenv("DEFAULT_ADMIN_EMAIL")
+	if email == "" {
+		email = "admin@spaceballone.local"
+	}
+
+	password := os.Getenv("DEFAULT_ADMIN_PASSWORD")
+	if password == "" {
+		var err error
+		password, err = GenerateRandomPassword()
+		if err != nil {
+			return "", "", fmt.Errorf("failed to generate password: %w", err)
+		}
 	}
 
 	hash, err := HashPassword(password)
 	if err != nil {
-		return "", fmt.Errorf("failed to hash password: %w", err)
+		return "", "", fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	admin := models.User{
-		Username:           "admin",
+		Email:              email,
 		PasswordHash:       hash,
 		MustChangePassword: true,
 	}
 	if err := db.Create(&admin).Error; err != nil {
-		return "", fmt.Errorf("failed to create admin user: %w", err)
+		return "", "", fmt.Errorf("failed to create admin user: %w", err)
 	}
 
-	return password, nil
+	return email, password, nil
 }
 
 // CreateSession creates a new app session for a user.

@@ -391,14 +391,14 @@ export const setupApi = {
 // Auth types
 export interface User {
   id: string
-  username: string
+  email: string
   must_change_password: boolean
   created_at: string
   updated_at: string
 }
 
 export interface LoginRequest {
-  username: string
+  email: string
   password: string
 }
 

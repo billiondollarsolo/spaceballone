@@ -13,19 +13,19 @@ import {
 import { useLogin, isApiError } from '~/lib/auth'
 
 export function LoginForm() {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const login = useLogin()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    login.mutate({ username, password })
+    login.mutate({ email, password })
   }
 
   const errorMessage = login.error
     ? isApiError(login.error)
       ? login.error.status === 401
-        ? 'Invalid username or password'
+        ? 'Invalid email or password'
         : 'An error occurred. Please try again.'
       : 'An error occurred. Please try again.'
     : null
@@ -46,15 +46,15 @@ export function LoginForm() {
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
-              id="username"
-              type="text"
-              placeholder="admin"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              id="email"
+              type="email"
+              placeholder="admin@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
-              autoComplete="username"
+              autoComplete="email"
               autoFocus
             />
           </div>

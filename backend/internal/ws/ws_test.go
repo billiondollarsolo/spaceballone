@@ -29,13 +29,13 @@ func setupTestDB(t *testing.T) *gorm.DB {
 func authenticatedRequest(t *testing.T, db *gorm.DB, mustChangePassword bool) *http.Request {
 	t.Helper()
 
-	password, err := auth.EnsureDefaultAdmin(db)
+	_, password, err := auth.EnsureDefaultAdmin(db)
 	if err != nil {
 		t.Fatalf("EnsureDefaultAdmin failed: %v", err)
 	}
 
 	var user models.User
-	if err := db.Where("username = ?", "admin").First(&user).Error; err != nil {
+	if err := db.Where("email = ?", "admin@spaceballone.local").First(&user).Error; err != nil {
 		t.Fatalf("admin user not found: %v", err)
 	}
 
@@ -84,7 +84,7 @@ func TestValidateWSSessionAcceptsNormalUser(t *testing.T) {
 	if !ok {
 		t.Fatal("expected websocket auth to accept a normal user")
 	}
-	if user == nil || user.Username != "admin" {
+	if user == nil || user.Email != "admin@spaceballone.local" {
 		t.Fatalf("expected authenticated admin user, got %#v", user)
 	}
 }

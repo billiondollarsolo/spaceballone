@@ -31,14 +31,14 @@ func main() {
 	}
 
 	// Ensure default admin user
-	password, err := auth.EnsureDefaultAdmin(database)
+	email, password, err := auth.EnsureDefaultAdmin(database)
 	if err != nil {
 		log.Fatalf("Failed to ensure default admin: %v", err)
 	}
 	if password != "" {
 		fmt.Println("==========================================================")
 		fmt.Println("  Default admin user created")
-		fmt.Printf("  Username: admin\n")
+		fmt.Printf("  Email:    %s\n", email)
 		fmt.Printf("  Password: %s\n", password)
 		fmt.Println("  Please change this password on first login.")
 		fmt.Println("==========================================================")

@@ -49,14 +49,14 @@ func TestHealthEndpoint(t *testing.T) {
 
 func TestLoginSuccess(t *testing.T) {
 	db := setupTestDB(t)
-	password, err := auth.EnsureDefaultAdmin(db)
+	_, password, err := auth.EnsureDefaultAdmin(db)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	router := NewRouter(db)
 
-	body, _ := json.Marshal(loginRequest{Username: "admin", Password: password})
+	body, _ := json.Marshal(loginRequest{Email: "admin@spaceballone.local", Password: password})
 	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -86,8 +86,8 @@ func TestLoginSuccess(t *testing.T) {
 
 	var resp loginResponse
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp.Username != "admin" {
-		t.Errorf("expected admin, got %s", resp.Username)
+	if resp.Email != "admin@spaceballone.local" {
+		t.Errorf("expected admin@spaceballone.local, got %s", resp.Email)
 	}
 	if !resp.MustChangePassword {
 		t.Error("expected must_change_password to be true")
@@ -99,7 +99,7 @@ func TestLoginInvalidCredentials(t *testing.T) {
 	auth.EnsureDefaultAdmin(db)
 	router := NewRouter(db)
 
-	body, _ := json.Marshal(loginRequest{Username: "admin", Password: "wrong"})
+	body, _ := json.Marshal(loginRequest{Email: "admin@spaceballone.local", Password: "wrong"})
 	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -126,7 +126,7 @@ func TestMeWithoutAuth(t *testing.T) {
 // loginAndGetCookie is a helper that logs in and returns the session cookie.
 func loginAndGetCookie(t *testing.T, router http.Handler, password string) *http.Cookie {
 	t.Helper()
-	body, _ := json.Marshal(loginRequest{Username: "admin", Password: password})
+	body, _ := json.Marshal(loginRequest{Email: "admin@spaceballone.local", Password: password})
 	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -142,7 +142,7 @@ func loginAndGetCookie(t *testing.T, router http.Handler, password string) *http
 
 func TestMeWithAuth(t *testing.T) {
 	db := setupTestDB(t)
-	password, _ := auth.EnsureDefaultAdmin(db)
+	_, password, _ := auth.EnsureDefaultAdmin(db)
 	router := NewRouter(db)
 
 	cookie := loginAndGetCookie(t, router, password)
@@ -158,14 +158,14 @@ func TestMeWithAuth(t *testing.T) {
 
 	var resp map[string]interface{}
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["username"] != "admin" {
-		t.Errorf("expected admin, got %v", resp["username"])
+	if resp["email"] != "admin@spaceballone.local" {
+		t.Errorf("expected admin@spaceballone.local, got %v", resp["email"])
 	}
 }
 
 func TestLogout(t *testing.T) {
 	db := setupTestDB(t)
-	password, _ := auth.EnsureDefaultAdmin(db)
+	_, password, _ := auth.EnsureDefaultAdmin(db)
 	router := NewRouter(db)
 
 	cookie := loginAndGetCookie(t, router, password)
@@ -193,7 +193,7 @@ func TestLogout(t *testing.T) {
 
 func TestChangePassword(t *testing.T) {
 	db := setupTestDB(t)
-	password, _ := auth.EnsureDefaultAdmin(db)
+	_, password, _ := auth.EnsureDefaultAdmin(db)
 	router := NewRouter(db)
 
 	cookie := loginAndGetCookie(t, router, password)
@@ -228,13 +228,13 @@ func TestChangePassword(t *testing.T) {
 
 	// Verify must_change_password is now false
 	var user models.User
-	db.Where("username = ?", "admin").First(&user)
+	db.Where("email = ?", "admin@spaceballone.local").First(&user)
 	if user.MustChangePassword {
 		t.Error("must_change_password should be false after password change")
 	}
 
 	// Verify old password no longer works
-	body2, _ := json.Marshal(loginRequest{Username: "admin", Password: password})
+	body2, _ := json.Marshal(loginRequest{Email: "admin@spaceballone.local", Password: password})
 	req2 := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body2))
 	req2.Header.Set("Content-Type", "application/json")
 	w2 := httptest.NewRecorder()
@@ -244,7 +244,7 @@ func TestChangePassword(t *testing.T) {
 	}
 
 	// Verify new password works
-	body3, _ := json.Marshal(loginRequest{Username: "admin", Password: "newpassword123"})
+	body3, _ := json.Marshal(loginRequest{Email: "admin@spaceballone.local", Password: "newpassword123"})
 	req3 := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(body3))
 	req3.Header.Set("Content-Type", "application/json")
 	w3 := httptest.NewRecorder()
@@ -272,7 +272,7 @@ func TestChangePassword(t *testing.T) {
 
 func TestMustChangePasswordBlocksNonAuthEndpoints(t *testing.T) {
 	db := setupTestDB(t)
-	password, _ := auth.EnsureDefaultAdmin(db)
+	_, password, _ := auth.EnsureDefaultAdmin(db)
 	router := NewRouter(db)
 
 	cookie := loginAndGetCookie(t, router, password)
