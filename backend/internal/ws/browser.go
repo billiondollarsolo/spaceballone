@@ -45,7 +45,7 @@ type screencastFrameParams struct {
 
 // HandleBrowserWS handles ws://…/api/ws/browser/{sessionId}.
 func (h *BrowserHandler) HandleBrowserWS(w http.ResponseWriter, r *http.Request) {
-	if !ValidateWSSession(h.DB, w, r) {
+	if _, ok := ValidateWSSession(h.DB, w, r); !ok {
 		return
 	}
 

@@ -31,7 +31,7 @@ type resizeMessage struct {
 
 // HandleTerminalWS handles ws://…/api/ws/terminal/{terminalId}.
 func (h *TerminalHandler) HandleTerminalWS(w http.ResponseWriter, r *http.Request) {
-	if !ValidateWSSession(h.DB, w, r) {
+	if _, ok := ValidateWSSession(h.DB, w, r); !ok {
 		return
 	}
 

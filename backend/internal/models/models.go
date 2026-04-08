@@ -51,6 +51,7 @@ type Machine struct {
 	Port                 int        `gorm:"default:22" json:"port"`
 	AuthType             string     `gorm:"not null" json:"auth_type"` // "key" or "password"
 	EncryptedCredentials []byte     `gorm:"type:blob" json:"-"`
+	HostKeyFingerprint   string     `gorm:"type:text" json:"host_key_fingerprint,omitempty"`
 	Status               string     `gorm:"default:disconnected" json:"status"`
 	Capabilities         string     `gorm:"type:text" json:"capabilities"` // JSON string
 	LastHeartbeat        *time.Time `json:"last_heartbeat,omitempty"`
@@ -83,15 +84,15 @@ func (p *Project) BeforeCreate(tx *gorm.DB) error {
 
 // Session represents a development session within a project.
 type Session struct {
-	ID           string         `gorm:"type:text;primaryKey" json:"id"`
-	ProjectID    string         `gorm:"type:text;not null;index" json:"project_id"`
-	Name         string         `gorm:"not null" json:"name"`
-	Status       string         `gorm:"default:active" json:"status"`
-	LastActive   *time.Time     `json:"last_active,omitempty"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	Project      Project        `gorm:"foreignKey:ProjectID" json:"-"`
-	TerminalTabs []TerminalTab  `gorm:"foreignKey:SessionID" json:"terminal_tabs,omitempty"`
+	ID           string        `gorm:"type:text;primaryKey" json:"id"`
+	ProjectID    string        `gorm:"type:text;not null;index" json:"project_id"`
+	Name         string        `gorm:"not null" json:"name"`
+	Status       string        `gorm:"default:active" json:"status"`
+	LastActive   *time.Time    `json:"last_active,omitempty"`
+	CreatedAt    time.Time     `json:"created_at"`
+	UpdatedAt    time.Time     `json:"updated_at"`
+	Project      Project       `gorm:"foreignKey:ProjectID" json:"-"`
+	TerminalTabs []TerminalTab `gorm:"foreignKey:SessionID" json:"terminal_tabs,omitempty"`
 }
 
 func (s *Session) BeforeCreate(tx *gorm.DB) error {

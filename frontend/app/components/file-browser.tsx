@@ -12,7 +12,7 @@ interface FileBrowserProps {
 
 export function FileBrowser({ machineId, onSelect, initialPath = '/' }: FileBrowserProps) {
   const [currentPath, setCurrentPath] = useState(initialPath)
-  const { data: entries, isLoading, error } = useBrowseDirectory(machineId, currentPath)
+  const { data, isLoading, error } = useBrowseDirectory(machineId, currentPath)
 
   const pathParts = currentPath.split('/').filter(Boolean)
 
@@ -80,7 +80,7 @@ export function FileBrowser({ machineId, onSelect, initialPath = '/' }: FileBrow
               </button>
             )}
 
-            {entries?.map((entry) => (
+            {data?.entries?.map((entry) => (
               <button
                 key={entry.name}
                 type="button"
@@ -106,7 +106,7 @@ export function FileBrowser({ machineId, onSelect, initialPath = '/' }: FileBrow
               </button>
             ))}
 
-            {entries && entries.length === 0 && (
+            {data?.entries && data.entries.length === 0 && (
               <div className="p-4 text-center text-sm text-muted-foreground">
                 Empty directory
               </div>
@@ -128,7 +128,9 @@ export function FileBrowser({ machineId, onSelect, initialPath = '/' }: FileBrow
   )
 }
 
-function formatSize(bytes: number): string {
+function formatSize(value: string): string {
+  const bytes = Number(value)
+  if (!Number.isFinite(bytes)) return value
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`

@@ -27,28 +27,30 @@ type createMachineRequest struct {
 }
 
 type machineResponse struct {
-	ID            string      `json:"id"`
-	Name          string      `json:"name"`
-	Host          string      `json:"host"`
-	Port          int         `json:"port"`
-	AuthType      string      `json:"auth_type"`
-	Status        string      `json:"status"`
-	Capabilities  interface{} `json:"capabilities"`
-	LastHeartbeat interface{} `json:"last_heartbeat,omitempty"`
-	CreatedAt     string      `json:"created_at"`
-	UpdatedAt     string      `json:"updated_at"`
+	ID                 string      `json:"id"`
+	Name               string      `json:"name"`
+	Host               string      `json:"host"`
+	Port               int         `json:"port"`
+	AuthType           string      `json:"auth_type"`
+	HostKeyFingerprint string      `json:"host_key_fingerprint,omitempty"`
+	Status             string      `json:"status"`
+	Capabilities       interface{} `json:"capabilities"`
+	LastHeartbeat      interface{} `json:"last_heartbeat,omitempty"`
+	CreatedAt          string      `json:"created_at"`
+	UpdatedAt          string      `json:"updated_at"`
 }
 
 func toMachineResponse(m *models.Machine) machineResponse {
 	resp := machineResponse{
-		ID:        m.ID,
-		Name:      m.Name,
-		Host:      m.Host,
-		Port:      m.Port,
-		AuthType:  m.AuthType,
-		Status:    m.Status,
-		CreatedAt: m.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt: m.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		ID:                 m.ID,
+		Name:               m.Name,
+		Host:               m.Host,
+		Port:               m.Port,
+		AuthType:           m.AuthType,
+		HostKeyFingerprint: m.HostKeyFingerprint,
+		Status:             m.Status,
+		CreatedAt:          m.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:          m.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	if m.LastHeartbeat != nil {
@@ -163,9 +165,15 @@ func (h *MachineHandler) UpdateMachine(w http.ResponseWriter, r *http.Request) {
 		machine.Name = req.Name
 	}
 	if req.Host != "" {
+		if req.Host != machine.Host {
+			machine.HostKeyFingerprint = ""
+		}
 		machine.Host = req.Host
 	}
 	if req.Port != 0 {
+		if req.Port != machine.Port {
+			machine.HostKeyFingerprint = ""
+		}
 		machine.Port = req.Port
 	}
 	if req.AuthType != "" {

@@ -142,3 +142,25 @@ func TestInvalidateSession(t *testing.T) {
 		t.Error("session should be invalid after invalidation")
 	}
 }
+
+func TestInvalidateUserSessions(t *testing.T) {
+	db := setupTestDB(t)
+	EnsureDefaultAdmin(db)
+
+	var user models.User
+	db.Where("username = ?", "admin").First(&user)
+
+	session1, _ := CreateSession(db, user.ID)
+	session2, _ := CreateSession(db, user.ID)
+
+	if err := InvalidateUserSessions(db, user.ID); err != nil {
+		t.Fatalf("InvalidateUserSessions failed: %v", err)
+	}
+
+	if _, err := ValidateSession(db, session1.SessionToken); err == nil {
+		t.Error("session1 should be invalid after user invalidation")
+	}
+	if _, err := ValidateSession(db, session2.SessionToken); err == nil {
+		t.Error("session2 should be invalid after user invalidation")
+	}
+}

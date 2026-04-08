@@ -2,9 +2,11 @@
 package ssh
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strings"
 	"sync"
@@ -60,11 +62,27 @@ func NewManager(db *gorm.DB, onStatusChange StatusChangeFunc) *Manager {
 	return m
 }
 
+func hostKeyCallback(expectedFingerprint string, seenFingerprint *string) ssh.HostKeyCallback {
+	return func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+		fingerprint := ssh.FingerprintSHA256(key)
+		if seenFingerprint != nil {
+			*seenFingerprint = fingerprint
+		}
+		if expectedFingerprint == "" {
+			return nil
+		}
+		if subtle.ConstantTimeCompare([]byte(fingerprint), []byte(expectedFingerprint)) == 1 {
+			return nil
+		}
+		return fmt.Errorf("ssh: host key mismatch for %s: expected %s, got %s", hostname, expectedFingerprint, fingerprint)
+	}
+}
+
 // buildSSHConfig parses the credential string and builds an ssh.ClientConfig.
-func (m *Manager) buildSSHConfig(machine *models.Machine, decryptedCreds string) (*ssh.ClientConfig, error) {
+func (m *Manager) buildSSHConfig(machine *models.Machine, decryptedCreds string, seenFingerprint *string) (*ssh.ClientConfig, error) {
 	config := &ssh.ClientConfig{
 		User:            "root",
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback: hostKeyCallback(machine.HostKeyFingerprint, seenFingerprint),
 		Timeout:         10 * time.Second,
 	}
 
@@ -98,7 +116,8 @@ func (m *Manager) buildSSHConfig(machine *models.Machine, decryptedCreds string)
 
 // Connect establishes an SSH connection to a machine.
 func (m *Manager) Connect(machine *models.Machine, decryptedCredentials string) error {
-	config, err := m.buildSSHConfig(machine, decryptedCredentials)
+	var seenFingerprint string
+	config, err := m.buildSSHConfig(machine, decryptedCredentials, &seenFingerprint)
 	if err != nil {
 		return err
 	}
@@ -126,6 +145,16 @@ func (m *Manager) Connect(machine *models.Machine, decryptedCredentials string) 
 		creds:   decryptedCredentials,
 	}
 	m.mu.Unlock()
+
+	if machine.HostKeyFingerprint == "" && seenFingerprint != "" {
+		if err := m.db.Model(&models.Machine{}).
+			Where("id = ? AND (host_key_fingerprint = '' OR host_key_fingerprint IS NULL)", machine.ID).
+			Update("host_key_fingerprint", seenFingerprint).Error; err != nil {
+			log.Printf("ssh: failed to persist host key fingerprint for machine %s: %v", machine.ID, err)
+		} else {
+			machine.HostKeyFingerprint = seenFingerprint
+		}
+	}
 
 	m.updateStatus(machine.ID, models.MachineStatusConnected)
 	return nil
@@ -335,7 +364,8 @@ func (m *Manager) retryConnection(machineID string, entry *connEntry, stop chan 
 		case <-time.After(backoff):
 		}
 
-		config, err := m.buildSSHConfig(entry.machine, entry.creds)
+		var seenFingerprint string
+		config, err := m.buildSSHConfig(entry.machine, entry.creds, &seenFingerprint)
 		if err != nil {
 			log.Printf("SSH retry: config build failed for machine %s: %v", machineID, err)
 			m.updateStatus(machineID, models.MachineStatusError)
@@ -365,6 +395,16 @@ func (m *Manager) retryConnection(machineID string, entry *connEntry, stop chan 
 			e.stopRetry = nil
 		}
 		m.mu.Unlock()
+
+		if entry.machine.HostKeyFingerprint == "" && seenFingerprint != "" {
+			if err := m.db.Model(&models.Machine{}).
+				Where("id = ? AND (host_key_fingerprint = '' OR host_key_fingerprint IS NULL)", entry.machine.ID).
+				Update("host_key_fingerprint", seenFingerprint).Error; err != nil {
+				log.Printf("ssh: failed to persist host key fingerprint for machine %s during retry: %v", entry.machine.ID, err)
+			} else {
+				entry.machine.HostKeyFingerprint = seenFingerprint
+			}
+		}
 
 		m.updateStatus(machineID, models.MachineStatusConnected)
 		log.Printf("SSH reconnected to machine %s after %d retries", machineID, attempt)

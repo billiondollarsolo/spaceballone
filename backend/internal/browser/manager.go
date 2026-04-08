@@ -20,6 +20,10 @@ func NewManager() *Manager {
 	return &Manager{}
 }
 
+func browserlessStartCommand() string {
+	return `docker run -d --name spaceballone-browser -p 127.0.0.1:9222:3000 --restart unless-stopped browserless/chrome:latest`
+}
+
 // StartBrowserless starts the Browserless Docker container on the remote machine.
 func (m *Manager) StartBrowserless(client *ssh.Client, machineID string) error {
 	// Check if already running
@@ -28,7 +32,7 @@ func (m *Manager) StartBrowserless(client *ssh.Client, machineID string) error {
 	}
 
 	// Start the container
-	cmd := `docker run -d --name spaceballone-browser -p 9222:3000 -p 5900:5900 --restart unless-stopped browserless/chrome:latest`
+	cmd := browserlessStartCommand()
 	if _, err := sshmanager.RunCommand(client, cmd); err != nil {
 		return fmt.Errorf("browserless: failed to start container: %w", err)
 	}

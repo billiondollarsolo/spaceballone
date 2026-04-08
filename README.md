@@ -233,7 +233,7 @@ This entire codebase was generated in a single session. Here's what that means:
 - The Browserless Docker image version/port mapping may need adjustment
 - SSH tunneling edge cases (dropped connections mid-tunnel, port conflicts) are not battle-tested
 - The single-user auth model is intentionally simple for MVP
-- `ssh.InsecureIgnoreHostKey()` is used -- no host key verification
+- SSH host keys are pinned with trust-on-first-use; the first connection still depends on trusting the target machine
 
 ## Contributing
 

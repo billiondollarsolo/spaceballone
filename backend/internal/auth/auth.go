@@ -163,3 +163,8 @@ func ValidateSession(db *gorm.DB, token string) (*models.AppSession, error) {
 func InvalidateSession(db *gorm.DB, token string) error {
 	return db.Where("session_token = ?", token).Delete(&models.AppSession{}).Error
 }
+
+// InvalidateUserSessions deletes all sessions for a user.
+func InvalidateUserSessions(db *gorm.DB, userID string) error {
+	return db.Where("user_id = ?", userID).Delete(&models.AppSession{}).Error
+}

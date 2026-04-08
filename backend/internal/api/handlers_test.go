@@ -75,6 +75,9 @@ func TestLoginSuccess(t *testing.T) {
 			if !c.HttpOnly {
 				t.Error("cookie should be httpOnly")
 			}
+			if c.SameSite != http.SameSiteStrictMode {
+				t.Errorf("cookie should be SameSite=Strict, got %v", c.SameSite)
+			}
 		}
 	}
 	if !found {
@@ -209,6 +212,20 @@ func TestChangePassword(t *testing.T) {
 		t.Errorf("expected 200, got %d; body: %s", w.Code, w.Body.String())
 	}
 
+	var rotatedCookie *http.Cookie
+	for _, c := range w.Result().Cookies() {
+		if c.Name == "spaceballone_session" {
+			rotatedCookie = c
+			break
+		}
+	}
+	if rotatedCookie == nil {
+		t.Fatal("expected password change to rotate the session cookie")
+	}
+	if rotatedCookie.Value == cookie.Value {
+		t.Error("expected password change to issue a new session token")
+	}
+
 	// Verify must_change_password is now false
 	var user models.User
 	db.Where("username = ?", "admin").First(&user)
@@ -234,6 +251,22 @@ func TestChangePassword(t *testing.T) {
 	router.ServeHTTP(w3, req3)
 	if w3.Code != http.StatusOK {
 		t.Errorf("new password should work, got %d", w3.Code)
+	}
+
+	req4 := httptest.NewRequest("GET", "/api/auth/me", nil)
+	req4.AddCookie(cookie)
+	w4 := httptest.NewRecorder()
+	router.ServeHTTP(w4, req4)
+	if w4.Code != http.StatusUnauthorized {
+		t.Errorf("old session should be invalid after password change, got %d", w4.Code)
+	}
+
+	req5 := httptest.NewRequest("GET", "/api/auth/me", nil)
+	req5.AddCookie(rotatedCookie)
+	w5 := httptest.NewRecorder()
+	router.ServeHTTP(w5, req5)
+	if w5.Code != http.StatusOK {
+		t.Errorf("rotated session should be valid, got %d", w5.Code)
 	}
 }
 

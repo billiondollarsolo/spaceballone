@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/spaceballone/backend/internal/auth"
 	authmw "github.com/spaceballone/backend/internal/middleware"
+	"github.com/spaceballone/backend/internal/models"
 	"gorm.io/gorm"
 )
 
@@ -34,19 +35,32 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     checkOrigin,
 }
 
-// ValidateWSSession validates the session cookie on a WebSocket HTTP request.
-// Returns an error and sends a 401 response if the session is invalid.
-func ValidateWSSession(db *gorm.DB, w http.ResponseWriter, r *http.Request) bool {
+// ValidateWSSession validates the session cookie and user policy on a WebSocket request.
+// Returns the authenticated user and true on success.
+func ValidateWSSession(db *gorm.DB, w http.ResponseWriter, r *http.Request) (*models.User, bool) {
 	cookie, err := r.Cookie(authmw.SessionCookieName)
 	if err != nil || cookie.Value == "" {
 		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
-		return false
+		return nil, false
 	}
-	if _, err := auth.ValidateSession(db, cookie.Value); err != nil {
+	session, err := auth.ValidateSession(db, cookie.Value)
+	if err != nil {
 		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
-		return false
+		return nil, false
 	}
-	return true
+
+	var user models.User
+	if err := db.First(&user, "id = ?", session.UserID).Error; err != nil {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		return nil, false
+	}
+
+	if user.MustChangePassword {
+		http.Error(w, `{"error":"must_change_password"}`, http.StatusForbidden)
+		return nil, false
+	}
+
+	return &user, true
 }
 
 // StatusMessage represents a machine status change message.
@@ -73,8 +87,10 @@ func NewHub() *Hub {
 
 // HandleWebSocket upgrades the HTTP connection to WebSocket and registers the client.
 func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	if h.DB != nil && !ValidateWSSession(h.DB, w, r) {
-		return
+	if h.DB != nil {
+		if _, ok := ValidateWSSession(h.DB, w, r); !ok {
+			return
+		}
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)

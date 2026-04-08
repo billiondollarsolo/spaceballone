@@ -157,9 +157,14 @@ export interface UpdateProjectInput {
 export interface DirectoryEntry {
   name: string
   type: 'file' | 'dir'
-  size: number
+  size: string
   modified: string
   permissions: string
+}
+
+export interface BrowseDirectoryResponse {
+  path: string
+  entries: DirectoryEntry[]
 }
 
 // Project API
@@ -182,7 +187,7 @@ export const projectApi = {
 }
 
 export function browseDirectory(machineId: string, path: string) {
-  return api.get<DirectoryEntry[]>(
+  return api.get<BrowseDirectoryResponse>(
     `/api/machines/${machineId}/browse?path=${encodeURIComponent(path)}`,
   )
 }

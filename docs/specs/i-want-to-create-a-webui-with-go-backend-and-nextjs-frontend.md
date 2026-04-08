@@ -91,9 +91,9 @@ Developers working across multiple remote machines need a unified interface to m
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
 │  │  tmux    │ │code-server│ │Browserless│ │ Coding   │  │
 │  │ sessions │ │ :8443    │ │ :9222    │ │ Agents   │  │
-│  │          │ │          │ │ :5900    │ │(Claude,  │  │
-│  │          │ │          │ │ (screen- │ │ OpenCode,│  │
-│  │          │ │          │ │  cast)   │ │ Codex)   │  │
+│  │          │ │          │ │ (loopback)│ │(Claude,  │  │
+│  │          │ │          │ │ (CDP)     │ │ OpenCode,│  │
+│  │          │ │          │ │           │ │ Codex)   │  │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘  │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -393,7 +393,7 @@ Developers working across multiple remote machines need a unified interface to m
 
 **Acceptance Criteria:**
 - [ ] Backend manages Browserless Docker container on remote machine (start if not running)
-- [ ] Browserless runs on fixed ports: 9222 (CDP), 5900 (screencast)
+- [ ] Browserless runs on loopback-only port 9222 (CDP over SSH tunnel)
 - [ ] Backend proxies Browserless screencast WebSocket to frontend
 - [ ] Browser tab renders JPEG frame stream from Browserless screencast
 - [ ] User mouse clicks and keyboard input forwarded to Browserless via CDP input events

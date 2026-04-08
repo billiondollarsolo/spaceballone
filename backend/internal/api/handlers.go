@@ -174,6 +174,34 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+func isSecureRequest(r *http.Request) bool {
+	return r.TLS != nil || os.Getenv("TLS_CERT_PATH") != "" || r.Header.Get("X-Forwarded-Proto") == "https"
+}
+
+func setSessionCookie(w http.ResponseWriter, r *http.Request, token string, maxAge int) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     authmw.SessionCookieName,
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   isSecureRequest(r),
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   maxAge,
+	})
+}
+
+func clearSessionCookie(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     authmw.SessionCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   isSecureRequest(r),
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   -1,
+	})
+}
+
 type loginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -210,16 +238,7 @@ func loginHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		secureCookie := r.TLS != nil || os.Getenv("TLS_CERT_PATH") != "" || r.Header.Get("X-Forwarded-Proto") == "https"
-		http.SetCookie(w, &http.Cookie{
-			Name:     authmw.SessionCookieName,
-			Value:    session.SessionToken,
-			Path:     "/",
-			HttpOnly: true,
-			Secure:   secureCookie,
-			SameSite: http.SameSiteLaxMode,
-			MaxAge:   int(auth.SessionExpiry().Seconds()),
-		})
+		setSessionCookie(w, r, session.SessionToken, int(auth.SessionExpiry().Seconds()))
 
 		writeJSON(w, http.StatusOK, loginResponse{
 			ID:                 user.ID,
@@ -236,14 +255,7 @@ func logoutHandler(db *gorm.DB) http.HandlerFunc {
 			_ = auth.InvalidateSession(db, cookie.Value)
 		}
 
-		http.SetCookie(w, &http.Cookie{
-			Name:     authmw.SessionCookieName,
-			Value:    "",
-			Path:     "/",
-			HttpOnly: true,
-			SameSite: http.SameSiteLaxMode,
-			MaxAge:   -1,
-		})
+		clearSessionCookie(w, r)
 
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}
@@ -298,13 +310,28 @@ func changePasswordHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := db.Model(user).Updates(map[string]interface{}{
-			"password_hash":        hash,
-			"must_change_password": false,
-		}).Error; err != nil {
+		var session *models.AppSession
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Model(user).Updates(map[string]interface{}{
+				"password_hash":        hash,
+				"must_change_password": false,
+			}).Error; err != nil {
+				return err
+			}
+
+			if err := auth.InvalidateUserSessions(tx, user.ID); err != nil {
+				return err
+			}
+
+			var err error
+			session, err = auth.CreateSession(tx, user.ID)
+			return err
+		}); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to update password")
 			return
 		}
+
+		setSessionCookie(w, r, session.SessionToken, int(auth.SessionExpiry().Seconds()))
 
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}
